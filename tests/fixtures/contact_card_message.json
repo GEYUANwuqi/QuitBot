@@ -1,0 +1,104 @@
+{
+  "type": "GroupControl",
+  "class_name": "ml-item",
+  "automation_id": "9000000000000000001",
+  "children": [
+    {
+      "type": "GroupControl",
+      "class_name": "message",
+      "children": [
+        {
+          "type": "GroupControl",
+          "class_name": "message__timestamp no-copy",
+          "children": [
+            {
+              "type": "TextControl",
+              "name": "10:00"
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "message-container message-container--self message-container--align-right",
+          "children": [
+            {
+              "type": "GroupControl",
+              "name": "测试好友A",
+              "class_name": "avatar-span",
+              "children": [
+                {
+                  "type": "GroupControl",
+                  "class_name": "avatar message-container__avatar"
+                }
+              ]
+            },
+            {
+              "type": "GroupControl",
+              "class_name": "message-extra-top",
+              "automation_id": "msg-extra-top-9000000000000000001"
+            },
+            {
+              "type": "GroupControl",
+              "class_name": "message-content__wrapper",
+              "children": [
+                {
+                  "type": "GroupControl",
+                  "name": "卡片",
+                  "class_name": "msg-content-container container--self ark-msg-content-container ark-msg-content-container_with_rich_ui",
+                  "automation_id": "ark-msg-content-container_9000000000000000001",
+                  "children": [
+                    {
+                      "type": "GroupControl",
+                      "children": [
+                        {
+                          "type": "GroupControl",
+                          "class_name": "rich-ui-app-wrapper",
+                          "automation_id": "ark-view-ml-root-9000000000000000001",
+                          "children": [
+                            {
+                              "type": "GroupControl",
+                              "class_name": "com_tencent_contact_lua rich-ui-app-container",
+                              "automation_id": "com_tencent_contact_lua_cardshare_cardshare_1700000000000_100001",
+                              "children": [
+                                {
+                                  "type": "GroupControl",
+                                  "children": [
+                                    {
+                                      "type": "GroupControl",
+                                      "children": [
+                                        {
+                                          "type": "TextControl",
+                                          "name": "测试账号"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "GroupControl"
+                                    },
+                                    {
+                                      "type": "GroupControl",
+                                      "children": [
+                                        {
+                                          "type": "TextControl",
+                                          "name": "推荐好友"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "type": "GroupControl",
+  "class_name": "ml-item",
+  "automation_id": "9000000000000000006",
+  "children": [
+    {
+      "type": "GroupControl",
+      "class_name": "message",
+      "children": [
+        {
+          "type": "GroupControl",
+          "class_name": "message__timestamp no-copy",
+          "children": [
+            {
+              "type": "TextControl",
+              "name": "10:04"
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "message-container message-container--self message-container--align-right message-container--mix-or-markdown",
+          "children": [
+            {
+              "type": "GroupControl",
+              "name": "测试账号",
+              "class_name": "avatar-span",
+              "children": [
+                {
+                  "type": "GroupControl",
+                  "class_name": "avatar-native message-container__avatar"
+                }
+              ]
+            },
+            {
+              "type": "GroupControl",
+              "class_name": "user-name no-copy text-ellipsis",
+              "children": [
+                {
+                  "type": "GroupControl",
+                  "class_name": "group-member-label q-tag q-tag--orange",
+                  "children": [
+                    {
+                      "type": "TextControl",
+                      "name": "群主"
+                    }
+                  ]
+                },
+                {
+                  "type": "TextControl",
+                  "name": "测试账号"
+                }
+              ]
+            },
+            {
+              "type": "GroupControl",
+              "class_name": "message-content__wrapper",
+              "children": [
+                {
+                  "type": "GroupControl",
+                  "class_name": "msg-content-container container--self mix-message__container",
+                  "children": [
+                    {
+                      "type": "GroupControl",
+                      "class_name": "message-content mix-message__inner",
+                      "children": [
+                        {
+                          "type": "GroupControl",
+                          "name": "表情",
+                          "class_name": "face-element",
+                          "children": [
+                            {
+                              "type": "ImageControl",
+                              "class_name": "face-element__icon"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "TextControl",
+                          "name": "示例表情消息"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "GroupControl",
+              "automation_id": "md-tips__9000000000000000006"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

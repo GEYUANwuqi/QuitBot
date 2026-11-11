@@ -1,0 +1,323 @@
+{
+  "type": "WindowControl",
+  "class_name": "side-panel",
+  "children": [
+    {
+      "type": "GroupControl",
+      "class_name": "wrapper",
+      "children": [
+        {
+          "type": "GroupControl",
+          "class_name": "title",
+          "children": [
+            {
+              "type": "ImageControl"
+            },
+            {
+              "type": "TextControl",
+              "name": "加群方式"
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "field-title",
+          "children": [
+            {
+              "type": "TextControl",
+              "name": "加群方式"
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "q-tooltips list-item",
+          "children": [
+            {
+              "type": "GroupControl",
+              "class_name": "q-list-item",
+              "children": [
+                {
+                  "type": "TextControl",
+                  "name": "允许任何人加群",
+                  "children": [
+                    {
+                      "type": "TextControl",
+                      "name": "允许任何人加群"
+                    }
+                  ]
+                },
+                {
+                  "type": "GroupControl",
+                  "class_name": "q-radio"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "q-tooltips list-item",
+          "children": [
+            {
+              "type": "GroupControl",
+              "class_name": "q-list-item",
+              "children": [
+                {
+                  "type": "TextControl",
+                  "name": "需要身份验证",
+                  "children": [
+                    {
+                      "type": "TextControl",
+                      "name": "需要身份验证"
+                    }
+                  ]
+                },
+                {
+                  "type": "GroupControl",
+                  "class_name": "q-radio is-checked"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "q-tooltips list-item",
+          "children": [
+            {
+              "type": "GroupControl",
+              "class_name": "q-list-item",
+              "children": [
+                {
+                  "type": "TextControl",
+                  "name": "不允许任何人加群",
+                  "children": [
+                    {
+                      "type": "TextControl",
+                      "name": "不允许任何人加群"
+                    }
+                  ]
+                },
+                {
+                  "type": "GroupControl",
+                  "class_name": "q-radio"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "field-title",
+          "children": [
+            {
+              "type": "TextControl",
+              "name": "验证方式"
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "q-tooltips list-item",
+          "children": [
+            {
+              "type": "GroupControl",
+              "class_name": "q-list-item",
+              "children": [
+                {
+                  "type": "TextControl",
+                  "name": "需要发送验证消息",
+                  "children": [
+                    {
+                      "type": "TextControl",
+                      "name": "需要发送验证消息"
+                    }
+                  ]
+                },
+                {
+                  "type": "GroupControl",
+                  "class_name": "q-radio is-checked"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "q-tooltips list-item",
+          "children": [
+            {
+              "type": "GroupControl",
+              "class_name": "q-list-item",
+              "children": [
+                {
+                  "type": "TextControl",
+                  "name": "需要回答问题并由管理员审核",
+                  "children": [
+                    {
+                      "type": "TextControl",
+                      "name": "需要回答问题并由管理员审核"
+                    }
+                  ]
+                },
+                {
+                  "type": "GroupControl",
+                  "class_name": "q-radio"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "q-tooltips list-item",
+          "children": [
+            {
+              "type": "GroupControl",
+              "class_name": "q-list-item",
+              "children": [
+                {
+                  "type": "TextControl",
+                  "name": "需要正确回答问题",
+                  "children": [
+                    {
+                      "type": "TextControl",
+                      "name": "需要正确回答问题"
+                    }
+                  ]
+                },
+                {
+                  "type": "GroupControl",
+                  "class_name": "q-radio"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "field-title",
+          "children": [
+            {
+              "type": "TextControl",
+              "name": "邀请加群权限"
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "q-list-item list-item",
+          "children": [
+            {
+              "type": "TextControl",
+              "name": "允许群成员邀请好友加群",
+              "children": [
+                {
+                  "type": "TextControl",
+                  "name": "允许群成员邀请好友加群"
+                }
+              ]
+            },
+            {
+              "type": "ButtonControl",
+              "class_name": "q-switch is-active"
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "list-item",
+          "children": [
+            {
+              "type": "GroupControl",
+              "class_name": "q-pulldown-menu pulldown-menu",
+              "children": [
+                {
+                  "type": "ButtonControl",
+                  "name": " 已选中 100人内无需审核",
+                  "class_name": "q-pulldown-menu-button",
+                  "children": [
+                    {
+                      "type": "TextControl",
+                      "name": "审核方式"
+                    },
+                    {
+                      "type": "EditControl",
+                      "name": "请选择",
+                      "class_name": "content"
+                    },
+                    {
+                      "type": "ImageControl"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "field-title",
+          "children": [
+            {
+              "type": "TextControl",
+              "name": "机器人加群权限"
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "q-list-item list-item",
+          "children": [
+            {
+              "type": "TextControl",
+              "name": "允许群成员邀请机器人加群",
+              "children": [
+                {
+                  "type": "TextControl",
+                  "name": "允许群成员邀请机器人加群"
+                }
+              ]
+            },
+            {
+              "type": "ButtonControl",
+              "class_name": "q-switch is-active"
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "list-item",
+          "children": [
+            {
+              "type": "GroupControl",
+              "class_name": "q-pulldown-menu pulldown-menu",
+              "children": [
+                {
+                  "type": "ButtonControl",
+                  "name": " 已选中 无需审核直接进群",
+                  "class_name": "q-pulldown-menu-button",
+                  "children": [
+                    {
+                      "type": "TextControl",
+                      "name": "审核方式"
+                    },
+                    {
+                      "type": "EditControl",
+                      "name": "请选择",
+                      "class_name": "content"
+                    },
+                    {
+                      "type": "ImageControl"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

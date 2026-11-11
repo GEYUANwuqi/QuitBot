@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      UV_LINK_MODE: copy
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.11.3"
+          python-version: "3.12"
+          enable-cache: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install backend dependencies
+        run: uv sync --locked
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+      - name: Check Python
+        run: uv run ruff check src tests scripts hatch_build.py
+      - name: Test backend with simulated QQ
+        run: uv run pytest -q
+      - name: Export protocol
+        run: uv run python -m quitbot_backend.export_schema
+      - name: Generate frontend types
+        run: npm --prefix frontend run types
+      - name: Check generated files are committed
+        run: git diff --exit-code -- protocol frontend/src/generated docs/capabilities.md
+      - name: Build console
+        run: npm --prefix frontend run build
+      - name: Build sdist and wheel
+        run: uv build --out-dir dist
+      - name: Check archives and installed console
+        run: uv run python scripts/check_distribution.py dist
+      - name: Save checked distributions
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: quitbot-windows-distributions
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7

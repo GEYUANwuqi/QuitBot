@@ -1,0 +1,96 @@
+{
+  "type": "GroupControl",
+  "class_name": "ml-item",
+  "automation_id": "9000000000000000004",
+  "children": [
+    {
+      "type": "GroupControl",
+      "class_name": "message",
+      "children": [
+        {
+          "type": "GroupControl",
+          "class_name": "message__timestamp no-copy",
+          "children": [
+            {
+              "type": "TextControl",
+              "name": "10:02"
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "message-container message-container--others",
+          "children": [
+            {
+              "type": "GroupControl",
+              "class_name": "avatar-span",
+              "children": [
+                {
+                  "type": "GroupControl",
+                  "class_name": "avatar message-container__avatar"
+                }
+              ]
+            },
+            {
+              "type": "GroupControl",
+              "class_name": "message-extra-top",
+              "automation_id": "msg-extra-top-9000000000000000004"
+            },
+            {
+              "type": "GroupControl",
+              "class_name": "message-content__wrapper",
+              "children": [
+                {
+                  "type": "GroupControl",
+                  "class_name": "forward-msg",
+                  "children": [
+                    {
+                      "type": "GroupControl",
+                      "class_name": "fwd-title text-ellipsis",
+                      "children": [
+                        {
+                          "type": "TextControl",
+                          "name": "群聊的聊天记录"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "GroupControl",
+                      "class_name": "fwd-content text-ellipsis",
+                      "children": [
+                        {
+                          "type": "TextControl",
+                          "name": "测试账号: 第一条示例消息"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "GroupControl",
+                      "class_name": "fwd-content text-ellipsis",
+                      "children": [
+                        {
+                          "type": "TextControl",
+                          "name": "测试账号: 第二条示例消息"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "GroupControl",
+                      "class_name": "count",
+                      "children": [
+                        {
+                          "type": "TextControl",
+                          "name": "查看2条转发消息"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

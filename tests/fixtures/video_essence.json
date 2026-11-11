@@ -1,0 +1,272 @@
+{
+  "type": "WindowControl",
+  "name": "群精华 - 测试群",
+  "class_name": "Chrome_WidgetWin_1",
+  "children": [
+    {
+      "type": "PaneControl",
+      "class_name": "Intermediate D3D Window"
+    },
+    {
+      "type": "PaneControl",
+      "name": "群精华 - 测试群",
+      "class_name": "RootView",
+      "children": [
+        {
+          "type": "PaneControl",
+          "class_name": "NonClientView",
+          "children": [
+            {
+              "type": "PaneControl",
+              "class_name": "WinFrameView",
+              "children": [
+                {
+                  "type": "PaneControl",
+                  "class_name": "ClientView",
+                  "children": [
+                    {
+                      "type": "PaneControl",
+                      "class_name": "View",
+                      "children": [
+                        {
+                          "type": "PaneControl",
+                          "class_name": "View",
+                          "children": [
+                            {
+                              "type": "PaneControl",
+                              "class_name": "View",
+                              "children": [
+                                {
+                                  "type": "DocumentControl",
+                                  "class_name": "WebView",
+                                  "children": [
+                                    {
+                                      "type": "PaneControl",
+                                      "class_name": "NativeViewHost"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "PaneControl",
+                                  "name": "Chrome Legacy Window",
+                                  "class_name": "Chrome_RenderWidgetHostHWND",
+                                  "automation_id": "10002",
+                                  "children": [
+                                    {
+                                      "type": "DocumentControl",
+                                      "automation_id": "RootWebArea",
+                                      "children": [
+                                        {
+                                          "type": "GroupControl",
+                                          "automation_id": "drag-area",
+                                          "children": [
+                                            {
+                                              "type": "GroupControl",
+                                              "class_name": "draggable-view"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "GroupControl",
+                                          "automation_id": "app",
+                                          "children": [
+                                            {
+                                              "type": "GroupControl",
+                                              "class_name": "group-essence",
+                                              "children": [
+                                                {
+                                                  "type": "GroupControl",
+                                                  "class_name": "draggable-view__container window-title-bar window-title-bar--center window-title-bar--win",
+                                                  "children": [
+                                                    {
+                                                      "type": "GroupControl",
+                                                      "class_name": "window-title-bar__title"
+                                                    },
+                                                    {
+                                                      "type": "PaneControl",
+                                                      "name": "窗口控制区域",
+                                                      "class_name": "window-control-area",
+                                                      "children": [
+                                                        {
+                                                          "type": "ButtonControl",
+                                                          "name": "最小化",
+                                                          "class_name": "window-control-area__btn miniMize",
+                                                          "children": [
+                                                            {
+                                                              "type": "ImageControl"
+                                                            }
+                                                          ]
+                                                        },
+                                                        {
+                                                          "type": "ButtonControl",
+                                                          "name": "最大化",
+                                                          "class_name": "window-control-area__btn",
+                                                          "children": [
+                                                            {
+                                                              "type": "ImageControl"
+                                                            }
+                                                          ]
+                                                        },
+                                                        {
+                                                          "type": "ButtonControl",
+                                                          "name": "关闭",
+                                                          "class_name": "window-control-area__btn close",
+                                                          "children": [
+                                                            {
+                                                              "type": "ImageControl"
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "GroupControl",
+                                                  "class_name": "content",
+                                                  "children": [
+                                                    {
+                                                      "type": "GroupControl",
+                                                      "class_name": "page-title",
+                                                      "children": [
+                                                        {
+                                                          "type": "TextControl",
+                                                          "name": "群精华-测试群"
+                                                        }
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "GroupControl",
+                                                      "class_name": "loading"
+                                                    },
+                                                    {
+                                                      "type": "GroupControl",
+                                                      "class_name": "q-scroll-view scroll-view--show-scrollbar scroll-list",
+                                                      "children": [
+                                                        {
+                                                          "type": "GroupControl",
+                                                          "class_name": "message-item-container",
+                                                          "children": [
+                                                            {
+                                                              "type": "GroupControl",
+                                                              "class_name": "q-tooltips message-item-container-more-icon",
+                                                              "children": [
+                                                                {
+                                                                  "type": "ButtonControl",
+                                                                  "class_name": "icon-item",
+                                                                  "children": [
+                                                                    {
+                                                                      "type": "ImageControl"
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            },
+                                                            {
+                                                              "type": "GroupControl",
+                                                              "class_name": "message-item-container-top-info-nick",
+                                                              "children": [
+                                                                {
+                                                                  "type": "TextControl",
+                                                                  "name": "测试账号"
+                                                                }
+                                                              ]
+                                                            },
+                                                            {
+                                                              "type": "TextControl",
+                                                              "name": "10:05"
+                                                            },
+                                                            {
+                                                              "type": "TextControl",
+                                                              "name": "发送"
+                                                            },
+                                                            {
+                                                              "type": "TextControl",
+                                                              "name": "·"
+                                                            },
+                                                            {
+                                                              "type": "TextControl",
+                                                              "name": "10:06"
+                                                            },
+                                                            {
+                                                              "type": "TextControl",
+                                                              "name": "由测试账号设置"
+                                                            },
+                                                            {
+                                                              "type": "GroupControl",
+                                                              "children": [
+                                                                {
+                                                                  "type": "GroupControl",
+                                                                  "class_name": "img_wrap",
+                                                                  "children": [
+                                                                    {
+                                                                      "type": "ImageControl",
+                                                                      "class_name": "thumbnail"
+                                                                    },
+                                                                    {
+                                                                      "type": "GroupControl",
+                                                                      "class_name": "q-svg-icon q-icon play_circle_mask",
+                                                                      "children": [
+                                                                        {
+                                                                          "type": "ImageControl"
+                                                                        }
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "GroupControl",
+                                                                      "class_name": "mask",
+                                                                      "children": [
+                                                                        {
+                                                                          "type": "GroupControl",
+                                                                          "class_name": "filename",
+                                                                          "children": [
+                                                                            {
+                                                                              "type": "TextControl",
+                                                                              "name": "samp...o.mp4"
+                                                                            }
+                                                                          ]
+                                                                        }
+                                                                      ]
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "GroupControl",
+                                          "automation_id": "loading"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "PaneControl",
+                              "class_name": "View"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

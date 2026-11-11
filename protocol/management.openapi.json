@@ -1,0 +1,1263 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "QuitBot Management API",
+    "version": "0.12.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "service"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Login",
+        "operationId": "login_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCredential"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/session": {
+      "get": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Session",
+        "operationId": "session_auth_session_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionInfo"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/auth/password": {
+      "post": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Password",
+        "operationId": "password_auth_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCredential"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Logout",
+        "operationId": "logout_auth_logout_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/config": {
+      "get": {
+        "tags": [
+          "configuration"
+        ],
+        "summary": "Read Config",
+        "operationId": "read_config_api_config_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "configuration"
+        ],
+        "summary": "Update Config",
+        "operationId": "update_config_api_config_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/discovery": {
+      "get": {
+        "tags": [
+          "discovery"
+        ],
+        "summary": "Read Discovery",
+        "operationId": "read_discovery_api_discovery_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoveryView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/discovery/refresh": {
+      "post": {
+        "tags": [
+          "discovery"
+        ],
+        "summary": "Refresh Discovery",
+        "operationId": "refresh_discovery_api_discovery_refresh_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoveryView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/accounts/activate": {
+      "post": {
+        "tags": [
+          "discovery"
+        ],
+        "summary": "Activate Account",
+        "operationId": "activate_account_api_accounts_activate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountActivation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccountActivation": {
+        "properties": {
+          "hwnd": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Hwnd"
+          },
+          "revision": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "hwnd",
+          "revision"
+        ],
+        "title": "AccountActivation"
+      },
+      "AccountConfig": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "title": "Account Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "default": ""
+          },
+          "http": {
+            "$ref": "#/components/schemas/ListenerConfig"
+          },
+          "forward_ws": {
+            "$ref": "#/components/schemas/ListenerConfig"
+          },
+          "reverse_ws": {
+            "$ref": "#/components/schemas/ReverseWSConfig"
+          },
+          "hwnd": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hwnd"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/TargetConfig"
+            },
+            "type": "array",
+            "title": "Targets"
+          },
+          "auto_connect": {
+            "type": "boolean",
+            "title": "Auto Connect",
+            "default": false
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "detached",
+              "switch"
+            ],
+            "title": "Mode",
+            "default": "detached"
+          },
+          "refresh_detached": {
+            "type": "boolean",
+            "title": "Refresh Detached",
+            "default": false
+          },
+          "interval": {
+            "type": "number",
+            "minimum": 0.2,
+            "title": "Interval",
+            "default": 1
+          },
+          "activities": {
+            "type": "boolean",
+            "title": "Activities",
+            "default": false
+          },
+          "resolve_members": {
+            "type": "boolean",
+            "title": "Resolve Members",
+            "default": false
+          },
+          "track_roster": {
+            "type": "boolean",
+            "title": "Track Roster",
+            "default": false
+          },
+          "request_kinds": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "group",
+                "friend"
+              ]
+            },
+            "type": "array",
+            "title": "Request Kinds"
+          },
+          "member_bindings": {
+            "items": {
+              "$ref": "#/components/schemas/MemberBinding"
+            },
+            "type": "array",
+            "title": "Member Bindings"
+          },
+          "origins": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Origins"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "account_id"
+        ],
+        "title": "AccountConfig"
+      },
+      "ConfigUpdate": {
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/ServiceConfig"
+          },
+          "revision": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "config",
+          "revision"
+        ],
+        "title": "ConfigUpdate"
+      },
+      "ConfigView": {
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/ServiceConfig"
+          },
+          "revision": {
+            "type": "string",
+            "title": "Revision"
+          },
+          "applied_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applied Revision"
+          },
+          "errors": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Errors"
+          },
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/RunningAccount"
+            },
+            "type": "array",
+            "title": "Accounts"
+          },
+          "activated_accounts": {
+            "items": {
+              "$ref": "#/components/schemas/DiscoveredWindow"
+            },
+            "type": "array",
+            "title": "Activated Accounts"
+          },
+          "webui": {
+            "$ref": "#/components/schemas/WebUIStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "config",
+          "revision",
+          "applied_revision",
+          "errors",
+          "accounts",
+          "activated_accounts",
+          "webui"
+        ],
+        "title": "ConfigView"
+      },
+      "DiscoveredProcess": {
+        "properties": {
+          "hwnd": {
+            "type": "integer",
+            "title": "Hwnd"
+          },
+          "pid": {
+            "type": "integer",
+            "title": "Pid"
+          },
+          "process_name": {
+            "type": "string",
+            "title": "Process Name",
+            "default": "QQ.exe"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hwnd",
+          "pid"
+        ],
+        "title": "DiscoveredProcess"
+      },
+      "DiscoveredWindow": {
+        "properties": {
+          "hwnd": {
+            "type": "integer",
+            "title": "Hwnd"
+          },
+          "pid": {
+            "type": "integer",
+            "title": "Pid"
+          },
+          "nickname": {
+            "type": "string",
+            "title": "Nickname"
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "avatar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "hwnd",
+          "pid",
+          "nickname",
+          "available"
+        ],
+        "title": "DiscoveredWindow"
+      },
+      "DiscoveryView": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "scanning",
+              "ready",
+              "failed"
+            ],
+            "title": "State",
+            "default": "idle"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
+          "scanned_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scanned At"
+          },
+          "windows": {
+            "items": {
+              "$ref": "#/components/schemas/DiscoveredProcess"
+            },
+            "type": "array",
+            "title": "Windows"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "title": "DiscoveryView"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ListenerConfig": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "host": {
+            "type": "string",
+            "title": "Host",
+            "default": "127.0.0.1"
+          },
+          "port": {
+            "type": "integer",
+            "maximum": 65535.0,
+            "minimum": 1024.0,
+            "title": "Port",
+            "default": 6700
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ListenerConfig"
+      },
+      "LoginRequest": {
+        "properties": {
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "MemberBinding": {
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "title": "Group Id"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "user_id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "title": "User Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "group_id",
+          "name",
+          "user_id"
+        ],
+        "title": "MemberBinding"
+      },
+      "PasswordChange": {
+        "properties": {
+          "new_password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "New Password"
+          },
+          "current_password": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Password"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "new_password"
+        ],
+        "title": "PasswordChange"
+      },
+      "ReverseWSConfig": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "default": ""
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "Universal",
+              "API",
+              "Event"
+            ],
+            "title": "Role",
+            "default": "Universal"
+          },
+          "access_token": {
+            "type": "string",
+            "maxLength": 4096,
+            "pattern": "^[\\x21-\\x7e]*$",
+            "title": "Access Token",
+            "default": ""
+          },
+          "reconnect_interval": {
+            "type": "number",
+            "maximum": 300.0,
+            "minimum": 0.2,
+            "title": "Reconnect Interval",
+            "default": 3
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ReverseWSConfig"
+      },
+      "ReverseWSStatus": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "default": ""
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "Universal",
+              "API",
+              "Event"
+            ],
+            "title": "Role",
+            "default": "Universal"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "connecting",
+              "connected",
+              "reconnecting",
+              "stopped"
+            ],
+            "title": "State",
+            "default": "disabled"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          }
+        },
+        "type": "object",
+        "title": "ReverseWSStatus"
+      },
+      "RunningAccount": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RuntimeStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "status"
+        ],
+        "title": "RunningAccount"
+      },
+      "RuntimeStatus": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "connected": {
+            "type": "boolean",
+            "title": "Connected"
+          },
+          "listening": {
+            "type": "boolean",
+            "title": "Listening"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/Target"
+            },
+            "type": "array",
+            "title": "Targets"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "listener_state": {
+            "type": "string",
+            "title": "Listener State",
+            "default": "stopped"
+          },
+          "reverse_ws": {
+            "$ref": "#/components/schemas/ReverseWSStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "label",
+          "connected",
+          "listening",
+          "mode",
+          "targets",
+          "last_error"
+        ],
+        "title": "RuntimeStatus"
+      },
+      "ServiceConfig": {
+        "properties": {
+          "webui": {
+            "$ref": "#/components/schemas/WebUIConfig"
+          },
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AccountConfig"
+            },
+            "type": "array",
+            "title": "Accounts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ServiceConfig"
+      },
+      "SessionCredential": {
+        "properties": {
+          "expires_at": {
+            "type": "number",
+            "title": "Expires At"
+          },
+          "must_change_password": {
+            "type": "boolean",
+            "title": "Must Change Password"
+          },
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "expires_at",
+          "must_change_password",
+          "access_token"
+        ],
+        "title": "SessionCredential"
+      },
+      "SessionInfo": {
+        "properties": {
+          "expires_at": {
+            "type": "number",
+            "title": "Expires At"
+          },
+          "must_change_password": {
+            "type": "boolean",
+            "title": "Must Change Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "expires_at",
+          "must_change_password"
+        ],
+        "title": "SessionInfo"
+      },
+      "Target": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "group",
+              "private"
+            ],
+            "title": "Kind",
+            "default": "group"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "Target"
+      },
+      "TargetConfig": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "group",
+              "private"
+            ],
+            "title": "Kind",
+            "default": "group"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "TargetConfig"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WebUIConfig": {
+        "properties": {
+          "host": {
+            "type": "string",
+            "title": "Host",
+            "default": "127.0.0.1"
+          },
+          "port": {
+            "type": "integer",
+            "maximum": 65535.0,
+            "minimum": 1024.0,
+            "title": "Port",
+            "default": 6699
+          },
+          "login_attempts": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Login Attempts",
+            "default": 5
+          },
+          "login_retry_seconds": {
+            "type": "integer",
+            "maximum": 3600.0,
+            "minimum": 1.0,
+            "title": "Login Retry Seconds",
+            "default": 30
+          },
+          "session_hours": {
+            "type": "number",
+            "maximum": 720.0,
+            "minimum": 0.1,
+            "title": "Session Hours",
+            "default": 4
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "WebUIConfig"
+      },
+      "WebUIStatus": {
+        "properties": {
+          "host": {
+            "type": "string",
+            "title": "Host"
+          },
+          "port": {
+            "type": "integer",
+            "title": "Port"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "restart_required": {
+            "type": "boolean",
+            "title": "Restart Required"
+          },
+          "port_overridden": {
+            "type": "boolean",
+            "title": "Port Overridden"
+          }
+        },
+        "type": "object",
+        "required": [
+          "host",
+          "port",
+          "url",
+          "restart_required",
+          "port_overridden"
+        ],
+        "title": "WebUIStatus"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "x-websocket": {
+    "url": "/ws",
+    "authentication": [
+      "x_login",
+      "x_authenticate",
+      "Authorization: Bearer <access_token>"
+    ],
+    "actions": {
+      "x_login": {
+        "params": "LoginRequest",
+        "result": "SessionCredential",
+        "firstFrame": true
+      },
+      "x_get_session": {
+        "params": {},
+        "result": "SessionInfo"
+      },
+      "x_change_password": {
+        "params": "PasswordChange",
+        "result": "SessionCredential"
+      },
+      "x_logout": {
+        "params": {},
+        "result": "null"
+      },
+      "x_get_config": {
+        "params": {},
+        "result": "ConfigView"
+      },
+      "x_get_discovery": {
+        "params": {},
+        "result": "DiscoveryView"
+      },
+      "x_refresh_discovery": {
+        "params": {},
+        "result": "DiscoveryView"
+      },
+      "x_activate_account": {
+        "params": "AccountActivation",
+        "result": "ConfigView"
+      },
+      "x_set_config": {
+        "params": "ConfigUpdate",
+        "result": "ConfigView"
+      }
+    },
+    "session": {
+      "durationConfiguration": "webui.session_hours",
+      "defaultDurationSeconds": 14400,
+      "changesApplyTo": "new sessions",
+      "sliding": false,
+      "firstLoginRequiresPasswordChange": true
+    },
+    "accountActions": {
+      "url": "/accounts/{account_id}/ws",
+      "authentication": "x_authenticate or Bearer",
+      "description": "Per-account console channel; independent from external HTTP and WS listeners"
+    }
+  }
+}

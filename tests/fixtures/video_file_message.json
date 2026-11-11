@@ -1,0 +1,124 @@
+{
+  "type": "GroupControl",
+  "class_name": "ml-item",
+  "automation_id": "9000000000000000007",
+  "children": [
+    {
+      "type": "GroupControl",
+      "class_name": "message",
+      "children": [
+        {
+          "type": "GroupControl",
+          "class_name": "message__timestamp no-copy",
+          "children": [
+            {
+              "type": "TextControl",
+              "name": "10:07"
+            }
+          ]
+        },
+        {
+          "type": "GroupControl",
+          "class_name": "message-container message-container--others file-message",
+          "children": [
+            {
+              "type": "GroupControl",
+              "class_name": "avatar-span",
+              "children": [
+                {
+                  "type": "GroupControl",
+                  "class_name": "avatar message-container__avatar"
+                }
+              ]
+            },
+            {
+              "type": "GroupControl",
+              "class_name": "message-extra-top",
+              "automation_id": "msg-extra-top-9000000000000000007"
+            },
+            {
+              "type": "GroupControl",
+              "class_name": "message-content__wrapper",
+              "children": [
+                {
+                  "type": "GroupControl",
+                  "class_name": "file-message--content",
+                  "children": [
+                    {
+                      "type": "GroupControl",
+                      "class_name": "msg-preview msg-preview--video file-element",
+                      "children": [
+                        {
+                          "type": "ImageControl",
+                          "class_name": "image pic-no-drag"
+                        },
+                        {
+                          "type": "GroupControl",
+                          "class_name": "file-info-mask",
+                          "children": [
+                            {
+                              "type": "GroupControl",
+                              "class_name": "text-ellipsis",
+                              "children": [
+                                {
+                                  "type": "TextControl",
+                                  "name": "sample-vid"
+                                },
+                                {
+                                  "type": "TextControl",
+                                  "name": "eo.mp4"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "GroupControl",
+                              "children": [
+                                {
+                                  "type": "TextControl",
+                                  "name": "39.06 KB 14天后过期"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "GroupControl",
+                          "class_name": "file-status-mask file-status-mask--show",
+                          "children": [
+                            {
+                              "type": "GroupControl",
+                              "class_name": "circle-progress file-progress",
+                              "children": [
+                                {
+                                  "type": "ImageControl",
+                                  "class_name": "circle-progress__svg"
+                                },
+                                {
+                                  "type": "GroupControl",
+                                  "class_name": "circle-progress__content",
+                                  "children": [
+                                    {
+                                      "type": "ImageControl"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "GroupControl",
+              "class_name": "file-status"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

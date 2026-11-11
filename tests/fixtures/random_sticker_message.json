@@ -1,0 +1,62 @@
+{
+  "type": "GroupControl",
+  "class_name": "ml-item",
+  "automation_id": "9000000000000000005",
+  "children": [
+    {
+      "type": "GroupControl",
+      "class_name": "message",
+      "children": [
+        {
+          "type": "GroupControl",
+          "class_name": "message-container message-container--others",
+          "children": [
+            {
+              "type": "GroupControl",
+              "name": "测试账号",
+              "class_name": "avatar-span",
+              "children": [
+                {
+                  "type": "GroupControl",
+                  "class_name": "avatar message-container__avatar"
+                }
+              ]
+            },
+            {
+              "type": "GroupControl",
+              "class_name": "message-extra-top",
+              "automation_id": "msg-extra-top-9000000000000000005"
+            },
+            {
+              "type": "GroupControl",
+              "class_name": "message-content__wrapper",
+              "children": [
+                {
+                  "type": "GroupControl",
+                  "class_name": "msg-content-container container--others mix-message__container mix-message__container--lottie-face",
+                  "children": [
+                    {
+                      "type": "GroupControl",
+                      "class_name": "message-content mix-message__inner",
+                      "children": [
+                        {
+                          "type": "GroupControl",
+                          "name": "表情",
+                          "class_name": "lottie is-random-sticker"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "GroupControl",
+              "automation_id": "md-tips__9000000000000000005"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

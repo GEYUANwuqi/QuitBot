@@ -3,6 +3,7 @@ from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
+from uia_fixtures import mock_context_menu_interface
 
 from quitbot_backend._engine.adapters.onebot.api import OneBotAdapter
 from quitbot_backend._engine.domain.activities import group_notice
@@ -44,6 +45,7 @@ def test_private_poke_distinguishes_peer_from_sender_and_rejects_unproven_rows(
 
 
 def test_private_poke_rechecks_identity_after_revealing_older_named_avatar(monkeypatch):
+    mock_context_menu_interface(monkeypatch)
     target = Target("23456", "peer", "private")
     calls = []
     older = SimpleNamespace(Name="peer", IsEnabled=True, IsOffscreen=True)

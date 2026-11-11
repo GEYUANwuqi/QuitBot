@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from uia_fixtures import mock_context_menu_interface
 
 from quitbot_backend._engine.domain.group_files import GroupFileEntry
 from quitbot_backend._engine.errors import (
@@ -342,8 +343,9 @@ def test_delete_only_confirms_exact_requested_filename_and_checks_absence():
     assert receipt.before.name == "one.txt" and receipt.after is None
 
 
-def test_batch_delete_cancels_if_selection_changes_while_confirmation_is_open():
+def test_batch_delete_cancels_if_selection_changes_while_confirmation_is_open(monkeypatch):
     """A matching count in the dialog must not authorize a changed file set."""
+    mock_context_menu_interface(monkeypatch)
     ui, state = file_mutation_fixture()
     entries = [GroupFileEntry(name, "file", "47.0 B", uploader_text="来自 测试账号")
                for name in ("one.txt", "two.txt", "foreign.txt")]

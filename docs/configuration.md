@@ -170,6 +170,24 @@ uv run python scripts/check_distribution.py .local/build
 
 安装 wheel 后，从选定的数据目录执行 `python -m quitbot_backend` 即可运行，运行环境无需 Node.js。默认配置相对于启动目录创建；通过 `QUITBOT_CONFIG` 可固定配置位置。静态资源始终从已安装的包读取。
 
-GitHub Actions 的 Windows CI 在 push、pull request 和手动触发时执行锁定依赖安装、Ruff、完整模拟测试、协议与类型一致性检查、前端构建、sdist / wheel 构建和安装验证。安装验证在独立临时环境中检查控制台、JS / CSS / 图标、首次登录改密及退出，不连接真实 QQ。通过的分发包保留为 CI 附件，运行配置、索引、缓存和本地勘探资料不进入附件。
+GitHub Actions 的 Windows CI 在分支 push、pull request 和手动触发时执行锁定依赖安装、Ruff、完整模拟测试、协议与类型一致性检查、前端构建、sdist / wheel 构建和安装验证。安装验证在独立临时环境中检查控制台、JS / CSS / 图标、首次登录改密及退出，不连接真实 QQ。通过的分发包和许可证保留为 CI 附件，运行配置、索引、缓存和本地勘探资料不进入附件。
 
 Linux CI 在 Ubuntu 24.04 安装原生无障碍依赖，执行静态检查和后端回归。Linux 启动器将 QQ、后端和无障碍服务放在同一 D-Bus 与 X11 会话中；多个隔离会话分别使用配置文件、显示编号和管理端口。
+
+### GitHub Releases
+
+[Release 工作流](../.github/workflows/release.yml) 在推送 `v*` 标签时自动运行。标签必须与该提交的 `pyproject.toml` 中版本一致，例如 `0.13.0` 对应 `v0.13.0`。发布前同步修改 `pyproject.toml` 和 `src/quitbot_backend/__init__.py` 中的版本，更新 `uv.lock`，再运行 `uv run python -m quitbot_backend.export_schema` 和 `npm --prefix frontend run types`。前端版本同步维护在 `frontend/package.json` 和 `frontend/package-lock.json`，完成后提交变更。
+
+```bash
+git tag -a v0.13.0 -m "QuitBot v0.13.0"
+git push origin v0.13.0
+```
+
+工作流复用 Windows 和 Linux CI，全部检查通过后创建 Release，并自动生成发布说明。附件包含：
+
+- `quitbot-<版本>.tar.gz`：包含前后端源码、文档和已构建控制台的 Python 源码包。
+- `quitbot-<版本>-py3-none-any.whl`：Windows / Linux 共用的安装包，包含控制台资源，依赖按平台选择。
+- `LICENSE`：项目许可证。
+- `THIRD_PARTY_LICENSES.txt`：控制台第三方组件许可声明。
+
+带 `a`、`b`、`rc` 或 `dev` 版本标记的发布自动标为预发布。手动触发时使用标签引用，例如 `gh workflow run release.yml --ref v0.13.0`；分支引用和版本不匹配的标签会在构建前报错。发布使用 GitHub Actions 自带的 `GITHUB_TOKEN`，无需额外配置发布凭证。

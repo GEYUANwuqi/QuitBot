@@ -55,7 +55,7 @@ uv run python -m quitbot_backend.desktop --display :99 --qq /opt/QQ/qq
 
 控制台自动连接本机后端。每个 QQ 账号保留独立配置、端口、绑定窗口和监听状态。开发前端时可另开终端执行 `npm --prefix frontend run dev`，开发页面自动代理本机后端的登录与配置连接。
 
-前端构建输出到 `src/quitbot_backend/_webui/`，由后端按包路径加载。从完整 wheel 安装时已包含控制台，运行时只需 Python 和后端依赖；配置仍保存在启动目录下的 `config/`，也可用 `QUITBOT_CONFIG` 指定位置。构建与安装包检查见[配置与运行](docs/configuration.md#构建与分发检查)。
+前端构建输出到 `src/quitbot_backend/_webui/`，由后端按包路径加载。从完整 wheel 安装时已包含控制台，运行时只需 Python 和后端依赖；配置仍保存在启动目录下的 `config/`，也可用 `QUITBOT_CONFIG` 指定位置。构建与安装包检查见[配置与运行](docs/configuration.md#构建与分发检查)。[GitHub Releases](https://github.com/GEYUANwuqi/QuitBot/releases) 提供源码包、wheel 和许可证，发布流程见[版本发布](docs/configuration.md#github-releases)。
 
 接入方式分别配置，可同时启用：
 

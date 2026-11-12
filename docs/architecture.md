@@ -12,10 +12,10 @@ QuitBot 由 Python 后端、React 控制台和类型化协议组成。后端统�
 | `src/quitbot_backend/runtime.py` | 单账号生命周期、动作调度和事件订阅 |
 | `src/quitbot_backend/reverse_ws.py` | 按账号建立反向 WS，处理握手、收发、重连与关闭 |
 | `src/quitbot_backend/config.py`、`auth.py` | 配置校验与持久化、密码校验和会话管理 |
-| `src/quitbot_backend/discovery.py` | 本 Windows 会话的 QQ 进程枚举、连接时的账号资料读取、结果模型 |
+| `src/quitbot_backend/discovery.py` | 当前图形会话的 QQ 进程枚举、连接时的账号资料读取、结果模型 |
 | `src/quitbot_backend/_webui/` | 前端生成的静态资源与第三方许可声明，随 Python 包分发，Git 忽略 |
 | `src/quitbot_backend/service.py`、`management.py` | 配置热更新、账号服务调度和管理接口 |
-| `src/quitbot_backend/_engine/` | UIA 操作、领域数据、OneBot 转换和本地消息索引 |
+| `src/quitbot_backend/_engine/` | 原生界面操作、领域数据、OneBot 转换和本地消息索引 |
 | `frontend/src/` | React + TypeScript 界面，`transport.ts` 处理 WS 请求、回执和事件 |
 | `frontend/src/generated/` | 由账号和管理 OpenAPI 生成的 TypeScript 类型 |
 | `protocol/` | OpenAPI 与动作目录 |
@@ -36,11 +36,11 @@ flowchart LR
   RW -->|主动连接| PEER[应用接收端]
   RW --> RA
   B --> RB[账号 B 运行实例]
-  RA --> UA[账号 A 的 COM / UIA 工作线程]
-  RB --> UB[账号 B 的 COM / UIA 工作线程]
+  RA --> UA[账号 A 的原生控件工作线程]
+  RB --> UB[账号 B 的原生控件工作线程]
   UA --> L[共享桌面事务锁]
   UB --> L
-  L --> QQ[同 Windows 会话内的 QQ 窗口]
+  L --> QQ[同图形会话内的 QQ 窗口]
 ```
 
 前端独立构建，由本机后端托管静态页面；开发模式由 Vite 代理同源登录与配置 WS。管理与业务请求均通过同源 WS，其中业务通道按账号隔离，与对外监听端口独立。其他应用可通过正向 WS、反向 WS 或 HTTP 接入同一账号实例；OpenAPI 和生成的类型负责描述接口。
@@ -75,7 +75,7 @@ WebUI 地址、端口和登录保护放在运行配置的 `webui` 中。地址�
 
 正向与反向连接共用 `AccountRuntime.handle()`，各自订阅账号事件。反向连接随账号服务启动和停止，按配置间隔重连；关闭时先停止外连，再等待在途动作完成。热更新仅影响配置发生变化的账号。
 
-网络调用和监听生命周期采用异步接口，同账号业务动作串行执行。Windows COM / UIA 在账号专属工作线程中运行，跨实例的 GUI 操作通过共享桌面事务锁协调焦点。独立 Windows 会话可用于隔离自动化与日常桌面操作。
+网络调用和监听生命周期采用异步接口，同账号业务动作串行执行。Windows COM / UIA 和 Linux AT-SPI 均在账号专属工作线程中运行，跨实例的 GUI 操作通过共享桌面事务锁协调焦点。Windows 使用命名互斥锁，Linux 使用按 X11 显示隔离的进程间文件锁。
 
 一次控件操作包含目标核验、执行、结果读取和界面收尾。取消网络等待后，已提交的控件操作继续完成；关闭和重配置会等待在途动作。提交后无法确认结果时，返回“结果未知”，调用方先查询实际状态，再决定是否重试。
 
@@ -93,3 +93,12 @@ WebUI 地址、端口和登录保护放在运行配置的 `webui` 中。地址�
 消息读取依赖 QQ 更新和加载界面内容。标准字段齐全的观察转换成 OneBot 事件，其余通过 `quitbot` 扩展保留原文和原因。完整事件范围见 [OneBot 适配](onebot11.md)。
 
 每个 WS 订阅者有 128 条事件缓冲，溢出时以 1013 关闭该连接。事件实时推送，断线期间的事件不补发。控制台分别展示服务连接、QQ 绑定和监听状态。
+
+
+## 平台适配
+
+`_engine/native.py` 按平台选择控件提供者。Windows 保留 UI Automation；Linux 的 `infrastructure/atspi/` 将角色、DOM class/id、文本与可用动作归一化，现有 QQ 会话操作、消息模型、解析、去重、账号服务和网络接口继续共用。Linux 控件只提供实际支持的操作；编辑框缺少 EditableText 接口时，使用经焦点核验的剪贴板输入。
+
+AT-SPI 负责读取业务树，X11 负责窗口所属进程、可见性、激活、屏幕截图和输入。窗口必须与真实 X11 窗口唯一对应，预加载的隐藏窗口不作为聊天窗口使用；最小化但仍由窗口管理器管理的聊天窗口可继续读取。文件选择器通过进程号及 `WM_TRANSIENT_FOR` 核验所属窗口，输入路径后通过剪贴板回读确认，提交动作只执行一次。
+
+`desktop.py` 是 Linux 无头部署入口，监督 Xvfb、窗口管理器、QQ 和后端的生命周期。D-Bus 与图形会话持续存在，远程查看连接独立于服务生命周期。不同显示和 D-Bus 会话使用独立后端进程；运行期间不在账号线程间切换环境变量。

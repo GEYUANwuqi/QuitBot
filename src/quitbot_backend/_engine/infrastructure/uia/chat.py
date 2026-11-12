@@ -556,19 +556,23 @@ class ChatUI:
                 raise ControlUnavailable("Member row has no identity label")
             name = labels[0]
             resolve = lambda: self._member_row(name)
-        if not control.IsKeyboardFocusable:
-            # QQ roster rows acquire their keyboard tab stop after selection.
-            self.b.invoke(control)
-            wait_until(
-                lambda: (resolve() if resolve else control).IsKeyboardFocusable,
-                timeout=2,
-            )
-        if resolve:
-            control = resolve()
-            self.b.focus_control(control, resolve=resolve)
+        if hasattr(control, "show_context_menu"):
+            self.b.window.SetActive(waitTime=0.05)
+            (resolve() if resolve else control).show_context_menu()
         else:
-            self.b.focus_control(control)
-        self.b.auto.SendKeys("{Shift}{F10}", waitTime=0.05)
+            if not control.IsKeyboardFocusable:
+                # QQ roster rows acquire their keyboard tab stop after selection.
+                self.b.invoke(control)
+                wait_until(
+                    lambda: (resolve() if resolve else control).IsKeyboardFocusable,
+                    timeout=2,
+                )
+            if resolve:
+                control = resolve()
+                self.b.focus_control(control, resolve=resolve)
+            else:
+                self.b.focus_control(control)
+            self.b.auto.SendKeys("{Shift}{F10}", waitTime=0.05)
         previous = [None]
 
         def settled_menu():

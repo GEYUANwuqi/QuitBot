@@ -233,6 +233,8 @@ class GroupFilesUI:
         return matches[0] if matches else None
 
     def _picker(self, window):
+        if hasattr(self.b.auto, "find_file_picker"):
+            return self.b.auto.find_file_picker(window)
         matches = [
             c
             for c in self.b.walk(window)
@@ -241,6 +243,12 @@ class GroupFilesUI:
         if len(matches) > 1:
             raise ControlUnavailable("Multiple native file dialogs are present")
         return matches[0] if matches else None
+
+    def _cancel_picker(self, picker):
+        if hasattr(picker, "cancel"):
+            picker.cancel()
+        else:
+            self.b.invoke(self.b.find(picker, lambda c: c.ControlTypeName == "ButtonControl" and c.AutomationId == "2" and c.ClassName == "Button"))
 
     def _require_clean(self, window, target):
         if self.ui.by_class("q-dialog-main", window) is not None or self._picker(
@@ -422,7 +430,7 @@ class GroupFilesUI:
         expected = expected or {}
         submitted = [False]
         with mutation_guard(submitted), self._fresh_view(key) as (target, window):
-            from comtypes.gen.UIAutomationClient import IUIAutomationElement3
+            from quitbot_backend._engine.native import show_context_menu
 
             rows, entries = self._read_rows(window)
             chosen = [
@@ -430,7 +438,7 @@ class GroupFilesUI:
                 for n in names
             ]
             row = rows[entries.index(chosen[0])]
-            row.Element.QueryInterface(IUIAutomationElement3).ShowContextMenu()
+            show_context_menu(row)
             try:
                 self.b.invoke(
                     self.ui._menu_item(wait_until(self.ui.navigation._menu), "多选")
@@ -470,7 +478,7 @@ class GroupFilesUI:
                 action = self.b.find(
                     toolbar,
                     lambda c: (
-                        c.Name == "另存为" and c.ControlTypeName == "ListItemControl"
+                        c.ControlTypeName == "ListItemControl" and (c.Name or text_of(self.b.snapshot(c))) == "另存为"
                     ),
                 )
                 icon = self.ui.by_class("op-icon", action, required=True)
@@ -480,43 +488,42 @@ class GroupFilesUI:
                 picker = wait_until(lambda: self._picker(window))
                 try:
                     path.mkdir(exist_ok=False)
-                    field = self.b.find(
-                        picker,
-                        lambda c: (
-                            c.AutomationId == "1152"
-                            and c.ControlTypeName == "EditControl"
-                        ),
-                    )
-                    field.GetValuePattern().SetValue(str(path), waitTime=0.1)
-                    if field.GetValuePattern().Value != str(path) or any(
-                        path.iterdir()
-                    ):
-                        raise TargetMismatch("Batch destination changed")
-                    confirm = self.b.find(
-                        picker,
-                        lambda c: (
-                            c.AutomationId == "1"
-                            and c.ControlTypeName == "ButtonControl"
-                            and c.ClassName == "Button"
-                            and c.Name == "另存为"
-                        ),
-                    )
-                    submitted[0] = True
-                    self.b.invoke(confirm)
+                    if hasattr(picker, "set_path"):
+                        picker.set_path(path, directory=True)
+                        if any(path.iterdir()):
+                            raise TargetMismatch("Batch destination changed")
+                        submitted[0] = True
+                        picker.confirm()
+                    else:
+                        field = self.b.find(
+                            picker,
+                            lambda c: (
+                                c.AutomationId == "1152"
+                                and c.ControlTypeName == "EditControl"
+                            ),
+                        )
+                        field.GetValuePattern().SetValue(str(path), waitTime=0.1)
+                        if field.GetValuePattern().Value != str(path) or any(
+                            path.iterdir()
+                        ):
+                            raise TargetMismatch("Batch destination changed")
+                        confirm = self.b.find(
+                            picker,
+                            lambda c: (
+                                c.AutomationId == "1"
+                                and c.ControlTypeName == "ButtonControl"
+                                and c.ClassName == "Button"
+                                and c.Name == "另存为"
+                            ),
+                        )
+                        submitted[0] = True
+                        self.b.invoke(confirm)
                     wait_until(lambda: self._picker(window), lambda p: p is None)
                     return self._download_receipts(target, chosen, path)
                 finally:
                     current = self._picker(window)
                     if current is not None:
-                        self.b.invoke(
-                            self.b.find(
-                                current,
-                                lambda c: (
-                                    c.AutomationId == "2"
-                                    and c.ControlTypeName == "ButtonControl"
-                                ),
-                            )
-                        )
+                        self._cancel_picker(current)
             finally:
                 self.ui._dismiss_menu()
                 if self.ui.by_class("forward-ops", window) is not None:
@@ -817,7 +824,7 @@ class GroupFilesUI:
 
     @contextmanager
     def _folder_menu(self, window, name, *, expected=None):
-        from comtypes.gen.UIAutomationClient import IUIAutomationElement3
+        from quitbot_backend._engine.native import show_context_menu
 
         rows, entries = self._read_rows(window)
         before = unique_file_entry(entries, name, kind="folder", expected=expected)
@@ -826,7 +833,7 @@ class GroupFilesUI:
         row = rows[entries.index(before)]
         # Folders expose no focusable checkbox. Native UIA avoids invoking/opening
         # the folder merely to acquire focus; the following dialog rechecks its name.
-        row.Element.QueryInterface(IUIAutomationElement3).ShowContextMenu()
+        show_context_menu(row)
         try:
             menu = wait_until(
                 lambda: self.b.find(
@@ -943,7 +950,7 @@ class GroupFilesUI:
         expected = expected or {}
         submitted = [False]
         with mutation_guard(submitted), self._fresh_view(key) as (target, window):
-            from comtypes.gen.UIAutomationClient import IUIAutomationElement3
+            from quitbot_backend._engine.native import show_context_menu
 
             rows, entries = self._read_rows(window)
             chosen = [unique_file_entry(entries, name, kind="file", expected=expected.get(name))
@@ -961,7 +968,7 @@ class GroupFilesUI:
                     unique_file_entry(entries, entry.name, kind="file", expected=entry)
 
             try:
-                rows[entries.index(chosen[0])].Element.QueryInterface(IUIAutomationElement3).ShowContextMenu()
+                show_context_menu(rows[entries.index(chosen[0])])
                 self.b.invoke(self.ui._menu_item(wait_until(self.ui.navigation._menu), "多选"))
                 wait_until(lambda: self.ui.by_class("forward-ops", window))
                 for entry in chosen[1:]:
@@ -976,8 +983,8 @@ class GroupFilesUI:
                                lambda value: value == 1)
                 verify_selection()
                 toolbar = self.ui.by_class("forward-ops", window, required=True)
-                action = self.b.find(toolbar, lambda c: c.Name == "删除"
-                                     and c.ControlTypeName == "ListItemControl")
+                action = self.b.find(toolbar, lambda c: c.ControlTypeName == "ListItemControl"
+                                     and (c.Name or text_of(self.b.snapshot(c))) == "删除")
                 icon = self.ui.by_class("op-icon", action, required=True)
                 if not icon.IsEnabled or icon.IsOffscreen or "disabled" in icon.ClassName.split():
                     raise ControlUnavailable("Batch file deletion is disabled")
@@ -1062,43 +1069,50 @@ class GroupFilesUI:
                 self.b.invoke(leaf)
                 picker = wait_until(lambda: self._picker(window))
                 try:
-                    if picker.Name != "另存为":
-                        raise ControlUnavailable(
-                            "Unrecognized group-file Save As picker"
+                    if hasattr(picker, "set_path"):
+                        picker.set_path(path, expected_name=name)
+                        if path.exists() or path.is_symlink():
+                            raise FileExistsError("Download destination appeared before confirmation")
+                        submitted[0] = True
+                        picker.confirm()
+                    else:
+                        if picker.Name != "另存为":
+                            raise ControlUnavailable(
+                                "Unrecognized group-file Save As picker"
+                            )
+                        edits = [
+                            c
+                            for c in self.b.walk(picker)
+                            if c.ControlTypeName == "EditControl"
+                            and c.AutomationId == "1001"
+                        ]
+                        if len(edits) != 1 or edits[0].GetValuePattern() is None:
+                            raise ControlUnavailable(
+                                "Save As filename input is missing or ambiguous"
+                            )
+                        value = edits[0].GetValuePattern()
+                        if value.Value != name:
+                            raise TargetMismatch(
+                                "Save As picker does not identify the selected file"
+                            )
+                        value.SetValue(str(path), waitTime=0.05)
+                        if value.Value != str(path):
+                            raise TargetMismatch("Save As destination verification failed")
+                        if path.exists() or path.is_symlink():
+                            raise FileExistsError(
+                                "Download destination appeared before confirmation"
+                            )
+                        confirm = self.b.find(
+                            picker,
+                            lambda c: (
+                                c.ControlTypeName == "ButtonControl"
+                                and c.AutomationId == "1"
+                                and c.Name == "另存为"
+                                and c.ClassName == "Button"
+                            ),
                         )
-                    edits = [
-                        c
-                        for c in self.b.walk(picker)
-                        if c.ControlTypeName == "EditControl"
-                        and c.AutomationId == "1001"
-                    ]
-                    if len(edits) != 1 or edits[0].GetValuePattern() is None:
-                        raise ControlUnavailable(
-                            "Save As filename input is missing or ambiguous"
-                        )
-                    value = edits[0].GetValuePattern()
-                    if value.Value != name:
-                        raise TargetMismatch(
-                            "Save As picker does not identify the selected file"
-                        )
-                    value.SetValue(str(path), waitTime=0.05)
-                    if value.Value != str(path):
-                        raise TargetMismatch("Save As destination verification failed")
-                    if path.exists() or path.is_symlink():
-                        raise FileExistsError(
-                            "Download destination appeared before confirmation"
-                        )
-                    confirm = self.b.find(
-                        picker,
-                        lambda c: (
-                            c.ControlTypeName == "ButtonControl"
-                            and c.AutomationId == "1"
-                            and c.Name == "另存为"
-                            and c.ClassName == "Button"
-                        ),
-                    )
-                    submitted[0] = True
-                    self.b.invoke(confirm)
+                        submitted[0] = True
+                        self.b.invoke(confirm)
                     wait_until(lambda: self._picker(window), lambda d: d is None)
                     size, digest = wait_until(
                         lambda: downloaded_file_state(path, before.size_text),
@@ -1109,15 +1123,7 @@ class GroupFilesUI:
                     )
                 finally:
                     if not submitted[0] and self._picker(window) is not None:
-                        cancel = self.b.find(
-                            picker,
-                            lambda c: (
-                                c.ControlTypeName == "ButtonControl"
-                                and c.AutomationId == "2"
-                                and c.ClassName == "Button"
-                            ),
-                        )
-                        self.b.invoke(cancel)
+                        self._cancel_picker(picker)
 
     def _await_entry(self, window, name, kind, *, timeout=15):
         def read():
@@ -1176,34 +1182,39 @@ class GroupFilesUI:
             self.b.invoke(self._button(window, "上传文件"))
             picker = wait_until(lambda: self._picker(window))
             try:
-                if picker.Name != "请选择":
-                    raise ControlUnavailable("Unrecognized group upload picker")
-                edits = [
-                    c
-                    for c in self.b.walk(picker)
-                    if c.ControlTypeName == "EditControl" and c.AutomationId == "1148"
-                ]
-                if len(edits) != 1 or edits[0].GetValuePattern() is None:
-                    raise ControlUnavailable(
-                        "Native filename input is missing or ambiguous"
+                if hasattr(picker, "set_path"):
+                    picker.set_path(path)
+                    submitted[0] = True
+                    picker.confirm()
+                else:
+                    if picker.Name != "请选择":
+                        raise ControlUnavailable("Unrecognized group upload picker")
+                    edits = [
+                        c
+                        for c in self.b.walk(picker)
+                        if c.ControlTypeName == "EditControl" and c.AutomationId == "1148"
+                    ]
+                    if len(edits) != 1 or edits[0].GetValuePattern() is None:
+                        raise ControlUnavailable(
+                            "Native filename input is missing or ambiguous"
+                        )
+                    value = edits[0].GetValuePattern()
+                    value.SetValue(str(path), waitTime=0.05)
+                    if value.Value != str(path):
+                        raise TargetMismatch("Upload picker path verification failed")
+                    confirm = self.b.find(
+                        picker,
+                        lambda c: (
+                            c.ControlTypeName == "ButtonControl"
+                            and c.AutomationId == "1"
+                            and c.ClassName == "Button"
+                            and c.Name == "确认"
+                        ),
                     )
-                value = edits[0].GetValuePattern()
-                value.SetValue(str(path), waitTime=0.05)
-                if value.Value != str(path):
-                    raise TargetMismatch("Upload picker path verification failed")
-                confirm = self.b.find(
-                    picker,
-                    lambda c: (
-                        c.ControlTypeName == "ButtonControl"
-                        and c.AutomationId == "1"
-                        and c.ClassName == "Button"
-                        and c.Name == "确认"
-                    ),
-                )
-                # The group-file picker commits immediately; there is no chat
-                # send preview and retrying would risk a duplicate upload.
-                submitted[0] = True
-                self.b.invoke(confirm)
+                    # The group-file picker commits immediately; there is no chat
+                    # send preview and retrying would risk a duplicate upload.
+                    submitted[0] = True
+                    self.b.invoke(confirm)
                 wait_until(lambda: self._picker(window), lambda d: d is None)
                 after = self._await_entry(window, name, "file", timeout=45)
                 return GroupFileMutationReceipt(
@@ -1216,12 +1227,4 @@ class GroupFilesUI:
                 )
             finally:
                 if not submitted[0] and self._picker(window) is not None:
-                    cancel = self.b.find(
-                        picker,
-                        lambda c: (
-                            c.ControlTypeName == "ButtonControl"
-                            and c.AutomationId == "2"
-                            and c.ClassName == "Button"
-                        ),
-                    )
-                    self.b.invoke(cancel)
+                    self._cancel_picker(picker)

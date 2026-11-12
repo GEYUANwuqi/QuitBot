@@ -151,7 +151,7 @@ class ApiCatalog(BaseModel):
 
 class CapabilitySummary(BaseModel):
     actions: list[ActionInfo]
-    transport: Literal["UIA"]
+    transport: Literal["UIA", "AT-SPI"]
     partial: bool
     scope: str
 

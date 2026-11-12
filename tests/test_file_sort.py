@@ -61,3 +61,9 @@ def test_invalid_file_orders_fail_before_accessing_a_window(query, order):
     ui = SecondaryUI.__new__(SecondaryUI)
     with pytest.raises(ValueError):
         ui.group_files("12345", query=query, order=order)
+
+
+def test_linux_time_sort_menu_has_an_explicit_complete_option_set():
+    state = file_sort_state("12345", state_rows()[:2], expected_keys=("newest", "oldest"))
+    assert state.current == "newest"
+    assert file_sort_state("12345", state_rows()[:1], expected_keys=("newest", "oldest")).current is None

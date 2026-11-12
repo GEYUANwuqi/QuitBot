@@ -46,7 +46,7 @@ class MemberInteractionsUI:
 
     def poke_friend(self, key):
         """Poke the verified peer via a loaded incoming message's avatar."""
-        from comtypes.gen.UIAutomationClient import IUIAutomationElement3
+        from quitbot_backend._engine.native import show_context_menu
 
         ui, b = self.ui, self.b
         submitted = [False]
@@ -88,7 +88,7 @@ class MemberInteractionsUI:
             avatar = ui.by_class("avatar-span", row, required=True)
             if avatar.Name != target.name or avatar.IsOffscreen or not avatar.IsEnabled:
                 raise TargetMismatch("Incoming avatar identity/visibility changed before poke")
-            avatar.Element.QueryInterface(IUIAutomationElement3).ShowContextMenu()
+            show_context_menu(avatar)
             try:
                 menu = wait_until(lambda: ui.by_class("buddy-avatar-context-menu"))
                 button = ui._menu_item(menu, "戳一戳")

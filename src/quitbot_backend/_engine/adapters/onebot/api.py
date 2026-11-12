@@ -32,6 +32,7 @@ from quitbot_backend._engine.errors import (
     SendOutcomeUnknown,
 )
 from quitbot_backend._engine.infrastructure.storage.message_index import MessageIndex
+from quitbot_backend._engine.native import TRANSPORT_NAME
 from quitbot_backend._engine.operations import validate_text
 
 SECONDARY_ACTIONS = (
@@ -507,10 +508,10 @@ class OneBotAdapter:
                 "app_name": "QuitBot",
                 "app_version": version("quitbot"),
                 "protocol_version": "v11",
-                "_quitbot": {"partial": True, "transport": "UIA"},
+                "_quitbot": {"partial": True, "transport": TRANSPORT_NAME},
             }
         if action == "x_get_client_version":
-            return {"client_name": "QQ", "client_version": await self.qq.client_version(), "source": "uia_about"}
+            return {"client_name": "QQ", "client_version": await self.qq.client_version(), "source": "atspi_about" if TRANSPORT_NAME == "AT-SPI" else "uia_about"}
         if action == "x_get_storage_paths":
             return await self.qq.storage_paths()
         if action == "get_msg":

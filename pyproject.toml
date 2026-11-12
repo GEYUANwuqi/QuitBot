@@ -1,7 +1,7 @@
 [project]
 name = "quitbot"
 version = "0.12.0"
-description = "Asynchronous Windows QQ UIA account service"
+description = "Asynchronous QQ account service for Windows and Linux desktops"
 readme = "README.md"
 requires-python = ">=3.12"
 license = "LicenseRef-QuitBot-NonCommercial-NoRedistribution-1.0"
@@ -9,6 +9,9 @@ license-files = ["LICENSE"]
 dependencies = [
     "uiautomation>=2.0.29; sys_platform == 'win32'",
     "comtypes>=1.4,<2; sys_platform == 'win32'",
+    "PyGObject>=3.48,<3.51; sys_platform == 'linux'",
+    "python-xlib>=0.33,<1; sys_platform == 'linux'",
+    "Pillow>=10,<13; sys_platform == 'linux'",
     "websockets>=15,<17",
     "fastapi>=0.115,<1",
     "uvicorn>=0.34,<1",

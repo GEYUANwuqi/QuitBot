@@ -16,6 +16,7 @@ from ._engine.domain.onebot import Unsupported
 from ._engine.errors import MutationOutcomeUnknown, QuitBotError, SendOutcomeUnknown
 from ._engine.infrastructure.storage.message_index import MessageIndex
 from ._engine.models import Target
+from ._engine.native import TRANSPORT_NAME
 from .config import AccountConfig
 from .contracts import ACTIONS, ReverseWSStatus, RuntimeStatus, validate_result
 
@@ -250,7 +251,7 @@ class AccountRuntime:
                 elif name in ("x_get_capabilities", "x_get_capability_matrix"):
                     data = {
                         "actions": self.catalog.get("actions", []),
-                        "transport": "UIA",
+                        "transport": TRANSPORT_NAME,
                         "partial": True,
                         "scope": "configured targets and loaded GUI state",
                     }

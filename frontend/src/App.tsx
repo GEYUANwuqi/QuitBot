@@ -688,7 +688,7 @@ export default function App({
           )}
           <footer>
             <span>
-              QuitBot <span className="footer-dot">·</span> Windows UI
+              QuitBot <span className="footer-dot">·</span> Desktop UI
               Automation
             </span>
             <span>

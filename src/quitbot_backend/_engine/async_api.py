@@ -325,6 +325,10 @@ class AsyncQQInstance:
             if getattr(self, "_com", None) is not None:
                 self._com.UninitializeUIAutomationInCurrentThread()
                 self._com = None
+            if sys.platform == "linux":
+                from .native import close_automation
+
+                close_automation()
 
     async def close(self):
         if self._closed:

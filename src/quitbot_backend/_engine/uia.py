@@ -1,7 +1,6 @@
 """Native control backend. Deliberately contains no mouse/coordinate APIs."""
 
 import re
-import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -60,11 +59,9 @@ def wait_until(read, predicate=bool, timeout=8.0):
 
 class UIABackend:
     def __init__(self, account: str, hwnd: int | None = None):
-        if sys.platform != "win32":
-            raise OSError("QuitBot requires a Windows interactive desktop")
-        import uiautomation as auto
+        from .native import automation
 
-        self.auto = auto
+        self.auto = automation()
         self.thread_id = threading.get_ident()
         self.account = account
         candidates = []
@@ -364,6 +361,9 @@ class UIABackend:
     def type_literal(self, editor, text):
         """Send Unicode code units, never interpret user text as key commands."""
         self.check_thread()
+        if hasattr(self.auto, "type_text"):
+            self.auto.type_text(editor, text)
+            return
         lines = text.split("\n")
         for i, line in enumerate(lines):
             if i:
@@ -467,6 +467,10 @@ class UIABackend:
             wait_until(current_state, lambda state: state == 1)
 
     def _require_no_modal(self, window=None):
+        if hasattr(self.auto, "find_file_picker") and self.auto.find_file_picker(
+            self.window if window is None else window
+        ) is not None:
+            raise ControlUnavailable("Close the existing native file picker first")
         dialog = self.find(
             self.window if window is None else window,
             lambda c: (
@@ -551,18 +555,18 @@ class UIABackend:
             if not matches:
                 # QQ virtualizes large address books and remembers their scroll
                 # position. Search bounded scroll positions using native UIA.
-                for percent in (0, 20, 40, 60, 80, 100):
-                    pane = self.find(
-                        self.window,
-                        lambda c: (
-                            c.Name == "联系人列表"
-                            and c.ControlTypeName == "PaneControl"
-                        ),
-                    )
-                    scroll = pane.GetPattern(self.auto.PatternId.ScrollPattern)
-                    if scroll is None or not scroll.VerticallyScrollable:
-                        break
-                    scroll.SetScrollPercent(-1, percent, waitTime=0.2)
+                pane = self.find(
+                    self.window,
+                    lambda c: c.Name == "联系人列表" and c.ControlTypeName == "PaneControl",
+                )
+                native_scroll = hasattr(pane, "scroll_pages")
+                positions = pane.scroll_pages() if native_scroll else (0, 20, 40, 60, 80, 100)
+                for percent in positions:
+                    if not native_scroll:
+                        scroll = pane.GetPattern(self.auto.PatternId.ScrollPattern)
+                        if scroll is None or not scroll.VerticallyScrollable:
+                            break
+                        scroll.SetScrollPercent(-1, percent, waitTime=0.2)
                     for control in self.walk(pane):
                         if "contact-item" not in control.ClassName.split():
                             continue

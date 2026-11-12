@@ -2258,9 +2258,9 @@ export interface components {
             actions: components["schemas"]["ActionInfo"][];
             /**
              * Transport
-             * @constant
+             * @enum {string}
              */
-            transport: "UIA";
+            transport: "UIA" | "AT-SPI";
             /** Partial */
             partial: boolean;
             /** Scope */

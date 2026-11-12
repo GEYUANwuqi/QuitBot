@@ -153,9 +153,9 @@ class StickersUI:
             return self._items()
 
     def _menu_action(self, row, name):
-        from comtypes.gen.UIAutomationClient import IUIAutomationElement3
+        from quitbot_backend._engine.native import show_context_menu
 
-        row.Element.QueryInterface(IUIAutomationElement3).ShowContextMenu()
+        show_context_menu(row)
         menu = wait_until(self.ui.navigation._menu)
         return self.ui._menu_item(menu, name)
 

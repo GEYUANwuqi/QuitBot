@@ -7,6 +7,8 @@ from quitbot_backend._engine.errors import ControlUnavailable, TargetMismatch
 
 def native_cards(auto, pid):
     """EnumWindows metadata only; QQ content is still read through UIA."""
+    if hasattr(auto, "native_cards"):
+        return auto.native_cards(pid)
     if sys.platform != "win32" or not hasattr(auto, "ControlFromHandle"):
         return []
     import ctypes
@@ -93,6 +95,8 @@ class ProfileCards:
 
     def reveal(self, result):
         card, visible, _ = result
+        if hasattr(self.b.auto, "reveal_profile"):
+            return self.b.auto.reveal_profile(card)
         if not visible:
             from .inspection import require_unlocked
 

@@ -37,8 +37,9 @@ class GroupSettingsUI:
 
     def share_link(self, key):
         """Copy the client's group link; uses this Windows session's clipboard."""
-        import ctypes
         import re
+
+        from ...native import clipboard_sequence
 
         ui, b = self.ui, self.b
         with ui.checked(key) as target:
@@ -66,10 +67,10 @@ class GroupSettingsUI:
                             and text_of(b.snapshot(c)) == "复制链接"
                         ),
                     )
-                    sequence = ctypes.windll.user32.GetClipboardSequenceNumber()
+                    sequence = clipboard_sequence(b.auto)
                     b.invoke(button)
                     wait_until(
-                        lambda: ctypes.windll.user32.GetClipboardSequenceNumber(),
+                        lambda: clipboard_sequence(b.auto),
                         lambda value: value != sequence,
                     )
                     copied = b.auto.GetClipboardText()

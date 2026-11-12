@@ -1,6 +1,5 @@
 """Discover loaded recent chats and operate their native context menus."""
 
-import ctypes
 import re
 import time
 from collections import Counter
@@ -9,6 +8,7 @@ from contextlib import contextmanager
 from ...errors import ControlUnavailable, TargetMismatch
 from ...locking import ui_transaction
 from ...models import ConversationCandidate, Target
+from ...native import clipboard_sequence
 from ...uia import wait_until
 from .inspection import require_unlocked
 
@@ -55,6 +55,13 @@ class RecentConversations:
                 lambda c: c.Name == "会话列表" and c.ControlTypeName == "PaneControl",
             )
             scroll = pane.GetPattern(self.b.auto.PatternId.ScrollPattern)
+            if hasattr(pane, "scroll_pages"):
+                for _ in pane.scroll_pages():
+                    try:
+                        return self.row(name)
+                    except ControlUnavailable:
+                        pass
+                raise ControlUnavailable(f"未在 QQ 最近会话列表中找到「{name}」")
             if scroll is None or not scroll.VerticallyScrollable:
                 raise
             original = scroll.VerticalScrollPercent
@@ -136,9 +143,9 @@ class RecentConversations:
 
     @staticmethod
     def show_native(control):
-        from comtypes.gen.UIAutomationClient import IUIAutomationElement3
+        from quitbot_backend._engine.native import show_context_menu
 
-        control.Element.QueryInterface(IUIAutomationElement3).ShowContextMenu()
+        show_context_menu(control)
 
     @contextmanager
     def menu(self, name):
@@ -160,11 +167,18 @@ class RecentConversations:
             return matches[0]
 
         # Focusing can replace Chromium's accessibility element. Reacquire it.
-        b.focus_control(content(), resolve=content)
+        native_menu = hasattr(self.row(name), "show_context_menu")
+        if native_menu:
+            b.window.SetActive(waitTime=0.05)
+        else:
+            b.focus_control(content(), resolve=content)
         opened = False
         try:
             opened = True
-            b.auto.SendKeys("{Shift}{F10}", waitTime=0.05)
+            if native_menu:
+                self.show_native(self.row(name))
+            else:
+                b.auto.SendKeys("{Shift}{F10}", waitTime=0.05)
             try:
                 menu = wait_until(self.visible_menu, timeout=2)
             except ControlUnavailable:
@@ -218,16 +232,16 @@ class RecentConversations:
                         )
                     item = matches[0]
                     kind = kinds[item.Name]
-                    sequence = ctypes.windll.user32.GetClipboardSequenceNumber()
+                    sequence = clipboard_sequence(self.b.auto)
                     self.b.invoke(item)
                     copied_sequence = wait_until(
-                        lambda: ctypes.windll.user32.GetClipboardSequenceNumber(),
+                        lambda: clipboard_sequence(self.b.auto),
                         lambda value: value != sequence,
                         timeout=3,
                     )
                     number = self.b.auto.GetClipboardText().strip()
                     if (
-                        ctypes.windll.user32.GetClipboardSequenceNumber()
+                        clipboard_sequence(self.b.auto)
                         != copied_sequence
                         or not re.fullmatch(r"[1-9][0-9]{4,11}", number)
                     ):

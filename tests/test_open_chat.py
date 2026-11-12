@@ -7,6 +7,7 @@ from quitbot_backend._engine.uia import UIABackend
 
 def make_backend(error):
     b = UIABackend.__new__(UIABackend)
+    b.auto = object()
     b.window = object()
     b.walk = lambda _: []
     b.open_session = lambda name: (_ for _ in ()).throw(error)

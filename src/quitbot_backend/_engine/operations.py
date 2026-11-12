@@ -95,13 +95,13 @@ class MessageOperations:
             root = b.find(b.window, lambda x: x.AutomationId == "ml-root")
             item = b.find(root, lambda x: x.AutomationId == original.id)
             if original.kind == "card":
-                from comtypes.gen.UIAutomationClient import IUIAutomationElement3
+                from quitbot_backend._engine.native import show_context_menu
 
                 from .infrastructure.uia.sharing import contact_card_name
 
                 card_name = contact_card_name(b.snapshot(item))
                 content = b.by_class("ark-msg-content-container", root=item)
-                content.Element.QueryInterface(IUIAutomationElement3).ShowContextMenu()
+                show_context_menu(content)
             else:
                 content = b.by_class(
                     "file-message--content"
@@ -273,61 +273,72 @@ class MessageOperations:
                 # Closing a profile popover can leave the main window inactive.
                 b.focus_control(toolbar_button(), resolve=toolbar_button)
                 b.auto.SendKeys("{Enter}", waitTime=0.1)
-            dialog = wait_until(
-                lambda: b.find(
-                    b.window,
-                    lambda x: (
-                        x.ControlTypeName == "WindowControl" and x.ClassName == "#32770"
-                    ),
-                    required=False,
-                ),
-                timeout=30,
-            )
-            dialog_handle = dialog.NativeWindowHandle
-            try:
-                edit = b.find(
-                    dialog,
-                    lambda x: (
-                        x.ControlTypeName == "EditControl" and x.AutomationId == "1148"
-                    ),
-                )
-                value = edit.GetValuePattern()
-                value.SetValue(str(path), waitTime=0.05)
-                if value.Value != str(path):
-                    raise TargetMismatch("File picker path verification failed")
-                b.invoke(
-                    b.find(
-                        dialog,
-                        lambda x: (
-                            x.ControlTypeName == "ButtonControl"
-                            and x.AutomationId == "1"
-                            and x.ClassName == "Button"
-                        ),
-                    )
-                )
-                wait_until(
+            if hasattr(b.auto, "find_file_picker"):
+                picker = wait_until(lambda: b.auto.find_file_picker(b.window), timeout=30)
+                try:
+                    picker.set_path(path)
+                    picker.confirm()
+                    wait_until(lambda: b.auto.find_file_picker(b.window), lambda value: value is None)
+                except Exception:
+                    if b.auto.find_file_picker(b.window) is not None:
+                        picker.cancel()
+                    raise
+            else:
+                dialog = wait_until(
                     lambda: b.find(
                         b.window,
                         lambda x: (
-                            x.ControlTypeName == "WindowControl"
-                            and x.ClassName == "#32770"
+                            x.ControlTypeName == "WindowControl" and x.ClassName == "#32770"
                         ),
                         required=False,
                     ),
-                    lambda x: x is None,
+                    timeout=30,
                 )
-            except Exception:
-                # Close only the picker opened by this operation, not an existing one.
-                if (
-                    b.find(
-                        b.window,
-                        lambda x: x.NativeWindowHandle == dialog_handle,
-                        required=False,
+                dialog_handle = dialog.NativeWindowHandle
+                try:
+                    edit = b.find(
+                        dialog,
+                        lambda x: (
+                            x.ControlTypeName == "EditControl" and x.AutomationId == "1148"
+                        ),
                     )
-                    is not None
-                ):
-                    dialog.GetWindowPattern().Close(waitTime=0.05)
-                raise
+                    value = edit.GetValuePattern()
+                    value.SetValue(str(path), waitTime=0.05)
+                    if value.Value != str(path):
+                        raise TargetMismatch("File picker path verification failed")
+                    b.invoke(
+                        b.find(
+                            dialog,
+                            lambda x: (
+                                x.ControlTypeName == "ButtonControl"
+                                and x.AutomationId == "1"
+                                and x.ClassName == "Button"
+                            ),
+                        )
+                    )
+                    wait_until(
+                        lambda: b.find(
+                            b.window,
+                            lambda x: (
+                                x.ControlTypeName == "WindowControl"
+                                and x.ClassName == "#32770"
+                            ),
+                            required=False,
+                        ),
+                        lambda x: x is None,
+                    )
+                except Exception:
+                    # Close only the picker opened by this operation, not an existing one.
+                    if (
+                        b.find(
+                            b.window,
+                            lambda x: x.NativeWindowHandle == dialog_handle,
+                            required=False,
+                        )
+                        is not None
+                    ):
+                        dialog.GetWindowPattern().Close(waitTime=0.05)
+                    raise
             if kind == "file":
                 preview = wait_until(
                     lambda: b.find(

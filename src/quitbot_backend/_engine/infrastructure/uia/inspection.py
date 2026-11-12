@@ -27,6 +27,8 @@ def is_lock_surface(control):
 
 
 def require_unlocked(auto):
+    if hasattr(auto, "require_unlocked"):
+        return auto.require_unlocked()
     from quitbot_backend._engine.uia import is_transient_uia_error
 
     for attempt in range(2):

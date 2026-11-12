@@ -206,7 +206,7 @@ export default function ConnectionPage({
       {!scanning && !discovery?.windows?.length && (
         <section className="card">
           <Empty title="尚未发现 QQ 窗口">
-            在后端所在的 Windows 会话中打开 QQ 主窗口，然后刷新探查。
+            在后端所在的图形会话中打开 QQ 主窗口，然后刷新探查。
           </Empty>
         </section>
       )}

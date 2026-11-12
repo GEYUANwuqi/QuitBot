@@ -1,6 +1,6 @@
 # QuitBot
 
-基于 **Windows QQ + UI Automation** 的异步账号服务，提供每个 QQ 账号独立的正向 / 反向 WebSocket、类型化 HTTP API 和 React 控制台。
+基于 **官方 QQ 原生界面** 的跨平台异步账号服务（Windows UI Automation / Linux AT-SPI），提供每个 QQ 账号独立的正向 / 反向 WebSocket、类型化 HTTP API 和 React 控制台。
 
 消息、群文件、公告和成员管理等操作通过 QQ 原生界面执行。可用范围取决于客户端界面、账号权限和内容加载状态，具体见[能力矩阵](docs/capabilities.md)与 [OneBot v11 适配现状](docs/onebot11.md)。
 
@@ -16,7 +16,7 @@
 
 ## 快速开始
 
-后端需要 Windows、已登录的 QQ、Python 3.12+ 和 uv。后端与 QQ 运行在同一个可交互的 Windows 会话中；构建和运行前端需要 Node.js 22.12+ / npm。
+后端需要 Windows 或 Linux X11、官方 QQ、Python 3.12+ 和 uv。后端与 QQ 运行在同一个图形会话中；构建和运行前端需要 Node.js 22.12+ / npm。
 
 在项目根目录安装依赖、构建控制台并启动：
 
@@ -26,6 +26,22 @@ npm --prefix frontend ci
 npm --prefix frontend run build
 uv run python -m quitbot_backend
 ```
+
+Linux（Ubuntu 24.04）先安装系统依赖，再执行上面的依赖安装与前端构建：
+
+```bash
+sudo apt-get install at-spi2-core gir1.2-atspi-2.0 libgirepository1.0-dev libcairo2-dev python3-dev pkg-config xvfb openbox dbus-x11 xauth x11-utils xdotool xclip
+```
+
+纯无头环境以普通 Linux 用户启动独立图形会话：
+
+```bash
+uv run python -m quitbot_backend.desktop --display :99 --qq /opt/QQ/qq
+```
+
+该入口创建独立 D-Bus、带认证的 Xvfb 和 Openbox，在启动 QQ 前启用辅助技术，并同时运行后端。登录 QQ 时可按需连接桌面查看工具；关闭查看连接后图形会话继续运行。终端输出 `DISPLAY` 和 `XAUTHORITY`，供查看工具使用。长期运行时将此入口交给 systemd 管理；启动目录和 `QUITBOT_CONFIG` 决定配置位置。每个隔离用户 / 图形会话运行一个后端实例，使用不同显示编号和管理端口。查看工具应绑定回环地址并通过 SSH 转发访问。
+
+已有 X11 桌面可直接运行后端；QQ 与后端需共享 `DISPLAY`、`XAUTHORITY` 和 `DBUS_SESSION_BUS_ADDRESS`。QQ 启动前启用 `org.a11y.Status` 的 `IsEnabled`、`ScreenReaderEnabled`，并使用 `--force-renderer-accessibility`。Linux 文本输入通过剪贴板和 XTEST 完成，会更新该图形会话的剪贴板。
 
 首次运行自动创建 `config/accounts.json` 和 `config/security.json`，终端显示随机生成的临时密码。初始账号列表为空。
 

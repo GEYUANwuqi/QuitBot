@@ -144,7 +144,9 @@ def read_self_avatar(backend):
 
 def discover_windows(*, resolve_ids=False, hwnd=None):
     """ID resolution opens each account's own profile and changes focus."""
-    import uiautomation as auto
+    from .native import automation
+
+    auto = automation()
 
     result = []
     with ui_transaction():

@@ -1,4 +1,4 @@
-"""Process discovery and explicit profile reads in the current Windows session."""
+"""Process discovery and explicit profile reads in the current graphical session."""
 
 import ctypes
 import ntpath
@@ -58,8 +58,10 @@ def windows_session_id() -> int | None:
 
 def scan_windows() -> list[DiscoveredProcess]:
     """Read Win32 window/process metadata without UIA, focus or profile access."""
+    if sys.platform == "linux":
+        return _scan_linux()
     if sys.platform != "win32":
-        raise RuntimeError("QQ 窗口探查需要 Windows")
+        raise RuntimeError("QQ 窗口探查需要 Windows 或 Linux X11 会话")
     from ctypes import wintypes
 
     user = ctypes.WinDLL("user32", use_last_error=True)
@@ -143,15 +145,21 @@ def read_window_profile(window: DiscoveredProcess) -> DiscoveredWindow:
     """Resolve only the selected window, keeping COM and UI cleanup on one thread."""
     if window not in scan_windows():
         raise RuntimeError("所选 QQ 进程或窗口已变化，请刷新探查后重新连接")
-    import uiautomation as auto
-    from comtypes import COMError
+    from ._engine.native import automation
+
+    auto = automation()
+    if sys.platform == "win32":
+        from comtypes import COMError
+    else:
+        COMError = ()
 
     from ._engine.discovery import discover_windows, read_self_avatar, read_self_id
     from ._engine.infrastructure.uia.inspection import require_unlocked
     from ._engine.locking import ui_transaction
     from ._engine.uia import UIABackend, wait_until
 
-    auto.InitializeUIAutomationInCurrentThread()
+    if sys.platform == "win32":
+        auto.InitializeUIAutomationInCurrentThread()
     try:
         with ui_transaction():
             require_unlocked(auto)
@@ -180,4 +188,30 @@ def read_window_profile(window: DiscoveredProcess) -> DiscoveredWindow:
     except COMError as error:
         raise RuntimeError("读取 QQ 账号资料失败，请确认窗口可用后重试") from error
     finally:
-        auto.UninitializeUIAutomationInCurrentThread()
+        if sys.platform == "win32":
+            auto.UninitializeUIAutomationInCurrentThread()
+
+
+def _scan_linux():
+    from pathlib import Path
+
+    from ._engine.infrastructure.atspi.x11 import Desktop
+
+    desktop = Desktop()
+    try:
+        result = []
+        for window in desktop.windows():
+            if not window.mapped or window.title != "QQ":
+                continue
+            try:
+                process = Path(f"/proc/{window.pid}")
+                if process.stat().st_uid != os.getuid():
+                    continue
+                name = (process / "exe").resolve(strict=True).name
+                if name.lower() == "qq":
+                    result.append(DiscoveredProcess(hwnd=window.id, pid=window.pid, process_name=name))
+            except (OSError, RuntimeError):
+                continue
+        return sorted(result, key=lambda w: (w.pid, w.hwnd))
+    finally:
+        desktop.close_connection()

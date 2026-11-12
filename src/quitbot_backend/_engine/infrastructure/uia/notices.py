@@ -323,7 +323,7 @@ class NoticesUI:
             main.SetActive(waitTime=0.1)
 
     def _notice_action(self, target, window, before, action, submitted=None):
-        from comtypes.gen.UIAutomationClient import IUIAutomationElement3
+        from quitbot_backend._engine.native import show_context_menu
 
         ui = self.client.control_ui
         rows = [
@@ -335,7 +335,7 @@ class NoticesUI:
         ]
         if len(rows) != 1:
             raise TargetMismatch("Announcement row changed before opening its menu")
-        rows[0].Element.QueryInterface(IUIAutomationElement3).ShowContextMenu()
+        show_context_menu(rows[0])
         menu = ui.navigation._menu()
         unique_notice(
             parse_notices(self.b.snapshot(window), target.id, target.name).items,

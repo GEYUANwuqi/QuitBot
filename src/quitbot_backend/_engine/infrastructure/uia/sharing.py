@@ -332,15 +332,11 @@ class SharingUI:
                     else:
                         row = self._card(message_id)
                         expected_text = contact_card_name(b.snapshot(row)) + "推荐好友"
-                        from comtypes.gen.UIAutomationClient import (
-                            IUIAutomationElement3,
-                        )
+                        from quitbot_backend._engine.native import show_context_menu
 
-                        ui.by_class(
+                        show_context_menu(ui.by_class(
                             "ark-msg-content-container", row, required=True
-                        ).Element.QueryInterface(
-                            IUIAutomationElement3
-                        ).ShowContextMenu()
+                        ))
                         stack.callback(ui._dismiss_menu)
                         stack.callback(self._close_multi)
                         b.invoke(ui._menu_item(wait_until(ui.navigation._menu), "多选"))
@@ -360,8 +356,8 @@ class SharingUI:
                         item = b.find(
                             toolbar,
                             lambda c: (
-                                c.Name == "逐条转发"
-                                and c.ControlTypeName == "ListItemControl"
+                                c.ControlTypeName == "ListItemControl"
+                                and (c.Name or text_of(b.snapshot(c))) == "逐条转发"
                             ),
                         )
                         b.invoke(

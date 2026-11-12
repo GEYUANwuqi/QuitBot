@@ -35,14 +35,15 @@ FILE_SORT_LABELS = {
 }
 
 
-def file_sort_state(group_id, rows):
+def file_sort_state(group_id, rows, *, expected_keys=None):
     """Retain indeterminate values instead of guessing the native checked option."""
     choices = tuple(
         FileSortChoice(key, FILE_SORT_LABELS[key], state, enabled)
         for key, state, enabled in rows
     )
     selected = [c.key for c in choices if c.selected is True]
-    complete = len({c.key for c in choices}) == len(FILE_SORT_LABELS) == len(choices)
+    expected_keys = set(FILE_SORT_LABELS if expected_keys is None else expected_keys)
+    complete = {c.key for c in choices} == expected_keys and len(choices) == len(expected_keys)
     current = (
         selected[0]
         if complete
@@ -371,9 +372,9 @@ class SecondaryUI:
         return replace(result, order=order)
 
     def _sort_menu(self):
-        button = self.ui.by_class(
-            "q-pulldown-menu-button", self.b.window, required=True
-        )
+        button = wait_until(lambda: self.ui.by_class(
+            "q-pulldown-menu-button", self.b.window
+        ))
         pattern = button.GetExpandCollapsePattern()
         if pattern is None:
             raise ControlUnavailable("File sort has no ExpandCollapsePattern")
@@ -388,7 +389,7 @@ class SecondaryUI:
         _, menu = self._sort_menu()
         rows = []
         for c in self.b.walk(menu):
-            if c.ControlTypeName != "CheckBoxControl":
+            if c.ControlTypeName not in ("CheckBoxControl", "MenuItemControl") or c.GetTogglePattern() is None:
                 continue
             keys = [key for key, label in FILE_SORT_LABELS.items() if label == c.Name]
             if len(keys) != 1:
@@ -396,7 +397,7 @@ class SecondaryUI:
             toggle = c.GetTogglePattern()
             state = toggle.ToggleState if toggle else None
             rows.append((keys[0], state == 1 if state in (0, 1) else None, c.IsEnabled))
-        return file_sort_state(group_id, rows)
+        return file_sort_state(group_id, rows, expected_keys=getattr(self.b.auto, "file_sort_keys", None))
 
     def _set_file_order(self, group_id, order):
         state = self._sort_state(group_id)
@@ -407,7 +408,7 @@ class SecondaryUI:
             leaf = self.b.find(
                 menu,
                 lambda c: (
-                    c.ControlTypeName == "CheckBoxControl"
+                    c.ControlTypeName in ("CheckBoxControl", "MenuItemControl")
                     and c.Name == FILE_SORT_LABELS[order]
                 ),
             )
@@ -483,7 +484,7 @@ class SecondaryUI:
 
     def file_sort_options(self, key):
         with self.files_view(key) as (_, window):
-            button = self.ui.by_class("q-pulldown-menu-button", window, required=True)
+            button = wait_until(lambda: self.ui.by_class("q-pulldown-menu-button", window))
             pattern = button.GetPattern(self.b.auto.PatternId.ExpandCollapsePattern)
             if pattern is None:
                 raise ControlUnavailable("File sort has no ExpandCollapsePattern")
@@ -497,7 +498,7 @@ class SecondaryUI:
                 return [
                     MenuAction(x.Name, x.IsEnabled, "local_sort_option")
                     for x in self.b.walk(menu)
-                    if x.ControlTypeName == "CheckBoxControl"
+                    if x.ControlTypeName in ("CheckBoxControl", "MenuItemControl") and x.GetTogglePattern() is not None
                 ]
             finally:
                 if not expanded:

@@ -107,16 +107,8 @@ def recent_ui(monkeypatch):
 
     monkeypatch.setattr(module, "wait_until", immediate)
     monkeypatch.setattr(module, "require_unlocked", lambda _: None)
-    monkeypatch.setattr(
-        module.ctypes,
-        "windll",
-        SimpleNamespace(
-            user32=SimpleNamespace(
-                GetClipboardSequenceNumber=lambda: state["sequence"],
-            )
-        ),
-        raising=False,
-    )
+    monkeypatch.setattr(module, "clipboard_sequence", lambda _: state["sequence"])
+
     monkeypatch.setattr(RecentConversations, "show_native", staticmethod(show_native))
     return RecentConversations(b), state, calls, row, pane, menu, previous
 

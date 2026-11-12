@@ -221,9 +221,9 @@ class HistoryUI:
                 raise ControlUnavailable(
                     "Date must identify exactly one loaded image thumbnail"
                 )
-            from comtypes.gen.UIAutomationClient import IUIAutomationElement3
+            from quitbot_backend._engine.native import show_context_menu
 
-            matches[0].Element.QueryInterface(IUIAutomationElement3).ShowContextMenu()
+            show_context_menu(matches[0])
             try:
                 b.invoke(ui._menu_item(wait_until(ui.navigation._menu), "定位到聊天"))
                 b.window = original
@@ -557,11 +557,15 @@ class HistoryUI:
                         if scroller is not None
                         else None
                     )
-                    if scroll is None or not scroll.VerticallyScrollable:
+                    native_scroll = scroll is None and hasattr(scroller, "scroll_page")
+                    if not native_scroll and (scroll is None or not scroll.VerticallyScrollable):
                         break
                     before = records
                     before_size = len(before)
-                    scroll.SetScrollPercent(-1, 100, waitTime=0.7)
+                    if native_scroll:
+                        scroller.scroll_page(1)
+                    else:
+                        scroll.SetScrollPercent(-1, 100, waitTime=0.7)
                     try:
                         records, _ = wait_until(
                             loaded_state,

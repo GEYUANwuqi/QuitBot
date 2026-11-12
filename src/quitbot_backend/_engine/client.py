@@ -372,7 +372,7 @@ class QQClient:
                     send is not None and send.GetInvokePattern()
                 ),
                 "message_root_id": "ml-root",
-                "input_backend": "UIA SetFocus + Unicode SendInput",
+                "input_backend": getattr(self.backend.auto, "input_backend", "UIA SetFocus + Unicode SendInput"),
                 "mouse_operations": False,
             }
 

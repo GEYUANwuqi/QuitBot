@@ -1,0 +1,1184 @@
+{
+  "truncated": false,
+  "errors": [],
+  "nodes": [
+    {
+      "path": [
+        0,
+        0
+      ],
+      "role": "frame",
+      "name": "QQ",
+      "attributes": {}
+    },
+    {
+      "path": [
+        0,
+        0,
+        0
+      ],
+      "role": "push button",
+      "name": "测试群",
+      "attributes": {
+        "class": "chat-header__contact-name"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "ml-root",
+        "id": "ml-root"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "ml-item",
+        "tag": "div",
+        "id": "9000000000000000001"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-container message-container--mix-or-markdown",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "测试好友A",
+      "attributes": {
+        "class": "avatar-span",
+        "tag": "span"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "avatar-native message-container__avatar",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "user-name no-copy text-ellipsis",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "role": "static",
+      "name": "测试好友A",
+      "attributes": {}
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        2
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-content__wrapper",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "msg-content-container container--others mix-message__container",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-content mix-message__inner",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0
+      ],
+      "role": "static",
+      "name": "相同文本",
+      "attributes": {}
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        3
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "tag": "div",
+        "id": "md-tips__9000000000000000001"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "ml-item",
+        "tag": "div",
+        "id": "9000000000000000002"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        1,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-container message-container--mix-or-markdown",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "测试好友A",
+      "attributes": {
+        "class": "avatar-span",
+        "tag": "span"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "avatar-native message-container__avatar",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        1
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "user-name no-copy text-ellipsis",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        1,
+        0
+      ],
+      "role": "static",
+      "name": "测试好友A",
+      "attributes": {}
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        2
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-content__wrapper",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "msg-content-container container--others mix-message__container",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        2,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-content mix-message__inner",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0
+      ],
+      "role": "static",
+      "name": "相同文本",
+      "attributes": {}
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        3
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "tag": "div",
+        "id": "md-tips__9000000000000000002"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        2
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "ml-item",
+        "tag": "div",
+        "id": "9000000000000000003"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        2,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        2,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-container message-container--mix-or-markdown",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        2,
+        0,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "测试好友A",
+      "attributes": {
+        "class": "avatar-span",
+        "tag": "span"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "avatar-native message-container__avatar",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        2,
+        0,
+        0,
+        1
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "user-name no-copy text-ellipsis",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        2,
+        0,
+        0,
+        1,
+        0
+      ],
+      "role": "static",
+      "name": "测试好友A",
+      "attributes": {}
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        2,
+        0,
+        0,
+        2
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-content__wrapper",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        2,
+        0,
+        0,
+        2,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "msg-content-container container--others mix-message__container",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        2,
+        0,
+        0,
+        2,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-content mix-message__inner",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        2,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0
+      ],
+      "role": "static",
+      "name": "第一行\n第二行🙂",
+      "attributes": {}
+    },
+    {
+      "path": [
+        0,
+        0,
+        1,
+        2,
+        0,
+        0,
+        3
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "tag": "div",
+        "id": "md-tips__9000000000000000003"
+      }
+    },
+    {
+      "path": [
+        0,
+        1
+      ],
+      "role": "frame",
+      "name": "QQ",
+      "attributes": {}
+    },
+    {
+      "path": [
+        0,
+        1,
+        0
+      ],
+      "role": "push button",
+      "name": "测试好友A",
+      "attributes": {
+        "class": "chat-header__contact-name"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "ml-root",
+        "id": "ml-root"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "ml-item",
+        "tag": "div",
+        "id": "9000000000000000004"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-container message-container--mix-or-markdown",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "avatar-span",
+        "tag": "span"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "avatar-native message-container__avatar",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        1
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-content__wrapper",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "msg-content-container container--others mix-message__container",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-content mix-message__inner",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "role": "static",
+      "name": "相同文本",
+      "attributes": {}
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        2
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "tag": "div",
+        "id": "md-tips__9000000000000000004"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "ml-item",
+        "tag": "div",
+        "id": "9000000000000000005"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        1,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        1,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-container message-container--mix-or-markdown",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "avatar-span",
+        "tag": "span"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "avatar-native message-container__avatar",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        1
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-content__wrapper",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        1,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "msg-content-container container--others mix-message__container",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-content mix-message__inner",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "role": "static",
+      "name": "相同文本",
+      "attributes": {}
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        2
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "tag": "div",
+        "id": "md-tips__9000000000000000005"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        2
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "ml-item",
+        "tag": "div",
+        "id": "9000000000000000006"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        2,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        2,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-container message-container--mix-or-markdown",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        2,
+        0,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "avatar-span",
+        "tag": "span"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "avatar-native message-container__avatar",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        2,
+        0,
+        0,
+        1
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-content__wrapper",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        2,
+        0,
+        0,
+        1,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "msg-content-container container--others mix-message__container",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        2,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "class": "message-content mix-message__inner",
+        "tag": "div"
+      }
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        2,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "role": "static",
+      "name": "第一行\n第二行🙂",
+      "attributes": {}
+    },
+    {
+      "path": [
+        0,
+        1,
+        1,
+        2,
+        0,
+        0,
+        2
+      ],
+      "role": "section",
+      "name": "",
+      "attributes": {
+        "tag": "div",
+        "id": "md-tips__9000000000000000006"
+      }
+    }
+  ]
+}

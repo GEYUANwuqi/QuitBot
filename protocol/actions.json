@@ -1683,7 +1683,10 @@
         },
         "transport": {
           "type": "string",
-          "const": "UIA",
+          "enum": [
+            "UIA",
+            "AT-SPI"
+          ],
           "title": "Transport"
         },
         "partial": {

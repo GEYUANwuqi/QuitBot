@@ -16,27 +16,36 @@
 
 ## 快速开始
 
-后端需要 Windows 或 Linux X11、官方 QQ、Python 3.12+ 和 uv。后端与 QQ 运行在同一个图形会话中；构建和运行前端需要 Node.js 22.12+ / npm。
+先安装官方 QQ 和 [uv](https://docs.astral.sh/uv/getting-started/installation/)。Python 由 `uv sync` 按项目要求自动准备，Release 自带 CI 预构建的控制台，**无需安装 Node.js 或 npm**。Linux 还需准备[无障碍与 X11 系统依赖](docs/configuration.md#运行环境)。后端与 QQ 运行在同一个图形会话中。
 
-在项目根目录安装依赖、构建控制台并启动：
+在准备存放项目的位置执行一行安装命令。
+
+Windows PowerShell：
 
 ```powershell
-uv sync --locked
-npm --prefix frontend ci
-npm --prefix frontend run build
-uv run python -m quitbot_backend
+irm https://raw.githubusercontent.com/GEYUANwuqi/QuitBot/master/scripts/install.ps1 | iex
 ```
 
-Linux（Ubuntu 24.04）先安装系统依赖，再执行上面的依赖安装与前端构建：
+Linux Bash：
 
 ```bash
-sudo apt-get install at-spi2-core gir1.2-atspi-2.0 libgirepository1.0-dev libcairo2-dev python3-dev pkg-config xvfb openbox dbus-x11 xauth x11-utils xdotool xclip
+curl -fsSL https://raw.githubusercontent.com/GEYUANwuqi/QuitBot/master/scripts/install.sh | bash
 ```
 
-纯无头环境以普通 Linux 用户启动独立图形会话：
+脚本先检查 `uv`，缺少时直接报错；随后下载最新正式 Release 的预构建源码包，在当前目录创建 **`QuitBot_<实际版本>`**（例如 `QuitBot_0.13.0`），并执行 `uv sync --locked --no-dev`。源码、锁文件和控制台来自同一个版本。同名目录已存在时停止，保留已有文件。
+
+安装完成后，按脚本输出进入项目目录，再选择下面的启动方式。
+
+Windows 或已有 X11 桌面中，登录官方 QQ 后启动后端：
+
+```sh
+uv run --locked --no-dev python -m quitbot_backend
+```
+
+纯无头 Linux 使用下面的命令启动 QQ 和后端，以普通用户创建独立图形会话：
 
 ```bash
-uv run python -m quitbot_backend.desktop --display :99 --qq /opt/QQ/qq
+uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /opt/QQ/qq
 ```
 
 该入口创建独立 D-Bus、带认证的 Xvfb 和 Openbox，在启动 QQ 前启用辅助技术，并同时运行后端。登录 QQ 时可按需连接桌面查看工具；关闭查看连接后图形会话继续运行。终端输出 `DISPLAY` 和 `XAUTHORITY`，供查看工具使用。长期运行时将此入口交给 systemd 管理；启动目录和 `QUITBOT_CONFIG` 决定配置位置。每个隔离用户 / 图形会话运行一个后端实例，使用不同显示编号和管理端口。查看工具应绑定回环地址并通过 SSH 转发访问。
@@ -53,9 +62,9 @@ uv run python -m quitbot_backend.desktop --display :99 --qq /opt/QQ/qq
 4. 连接成功后自动进入该 QQ 的账号设置。在「监听范围」点击「探查会话」，勾选并核验需要监听的群聊或私聊；也可手动填写号码与名称。保存后在本页点击「启动监听」。
 5. 在「账号设置」点击「添加连接」，分别设置 HTTP、正向 WS 或反向 WS，保存并应用。成员身份映射等细项在「其他设置 → 高级配置」维护。
 
-控制台自动连接本机后端。每个 QQ 账号保留独立配置、端口、绑定窗口和监听状态。开发前端时可另开终端执行 `npm --prefix frontend run dev`，开发页面自动代理本机后端的登录与配置连接。
+控制台由后端直接提供，自动连接本机服务。每个 QQ 账号保留独立配置、端口、绑定窗口和监听状态。
 
-前端构建输出到 `src/quitbot_backend/_webui/`，由后端按包路径加载。从完整 wheel 安装时已包含控制台，运行时只需 Python 和后端依赖；配置仍保存在启动目录下的 `config/`，也可用 `QUITBOT_CONFIG` 指定位置。构建与安装包检查见[配置与运行](docs/configuration.md#构建与分发检查)。[GitHub Releases](https://github.com/GEYUANwuqi/QuitBot/releases) 提供源码包、wheel 和许可证，发布流程见[版本发布](docs/configuration.md#github-releases)。
+安装与运行说明见[部署指南](docs/configuration.md#使用安装脚本)。修改前端或从 Git 源码自行构建时，才需要 Node.js / npm，见[前端开发](docs/configuration.md#前端开发)。配置默认保存在启动目录下的 `config/`，也可用 `QUITBOT_CONFIG` 指定位置。
 
 接入方式分别配置，可同时启用：
 
@@ -114,7 +123,7 @@ WebUI、正向 WS 和 HTTP 的监听地址与端口均可自定义，默认使�
 - [已实现能力与完整动作目录](docs/capabilities.md)
 - [OneBot v11 适配现状](docs/onebot11.md)
 - [接口调用与类型](docs/api.md)
-- [配置、登录与热更新](docs/configuration.md)
+- [部署、配置与运行](docs/configuration.md)
 - [控制台使用说明](docs/webui.md)
 - [项目架构](docs/architecture.md)
 - [许可说明](docs/licensing.md)

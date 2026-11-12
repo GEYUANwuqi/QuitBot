@@ -7,7 +7,7 @@ QuitBot 提供管理服务和每个 QQ 账号独立的业务服务。控制台�
 | [已实现能力](capabilities.md) | 业务范围、使用条件与完整动作目录 |
 | [OneBot v11 适配现状](onebot11.md) | 标准动作、扩展、事件及尚未适配的项目 |
 | [接口调用](api.md) | 连接与认证、参数、返回类型、错误处理和 OpenAPI |
-| [配置与运行](configuration.md) | 密码登录、窗口探查、WebUI 与账号配置、热更新 |
+| [部署、配置与运行](configuration.md) | Release 预构建包部署、密码登录、窗口探查、WebUI 与账号配置、热更新 |
 | [控制台](webui.md) | 探查并选择账号、连接与设置、接口调试和事件查看 |
 | [架构](architecture.md) | 模块职责、账号隔离、异步调度与监听 |
 | [许可说明](licensing.md) | 非商业使用、再分发限制和第三方组件 |

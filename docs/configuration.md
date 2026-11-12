@@ -1,19 +1,68 @@
-# 配置、登录与热更新
+# 部署、配置与运行
 
 ## 运行环境
 
-后端需要 Windows 或 Linux X11、Python 3.12+、uv 和官方 QQ，并与 QQ 位于同一个图形会话。Linux 的系统依赖与无头启动入口见 [README](../README.md#快速开始)。前端使用 Node.js 22.12+ / npm。
+准备 Windows 或 Linux X11、官方 QQ 和 [uv](https://docs.astral.sh/uv/getting-started/installation/)。后端与 QQ 位于同一个图形会话。安装脚本检查 `uv` 是否可用，Python 由 `uv sync` 按项目要求自动准备。Release 的源码包包含 CI 预构建的控制台，部署与运行无需 Node.js / npm。
+
+Ubuntu 24.04 先安装无障碍与图形会话的系统依赖：
+
+```bash
+sudo apt-get install at-spi2-core gir1.2-atspi-2.0 libgirepository1.0-dev libcairo2-dev python3-dev pkg-config xvfb openbox dbus-x11 xauth x11-utils xdotool xclip
+```
 
 需要隔离自动化和日常桌面时，可自行使用 Anode 或其他独立 Windows 会话。Anode 为可选环境，项目不附带其安装包。QQ 独立聊天窗口共享所在桌面的输入焦点。
 
-## 首次启动
+## 使用安装脚本
 
-在项目根目录执行：
+在准备存放项目的位置运行一行命令。脚本位于仓库的 `scripts/`，下载的是[最新正式 Release](https://github.com/GEYUANwuqi/QuitBot/releases/latest) 中包含预构建控制台的源码包。
+
+Windows PowerShell：
 
 ```powershell
-uv sync --locked
-uv run python -m quitbot_backend
+irm https://raw.githubusercontent.com/GEYUANwuqi/QuitBot/master/scripts/install.ps1 | iex
 ```
+
+Linux Bash：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/GEYUANwuqi/QuitBot/master/scripts/install.sh | bash
+```
+
+脚本执行流程：
+
+1. 检查 `uv`，缺少时直接报错，并给出安装入口。
+2. 解析最新正式版，下载对应的 `quitbot-<版本>.tar.gz` 源码包。
+3. 在当前目录创建 `QuitBot_<实际版本>`，例如 `QuitBot_0.13.0`，解压前后端源码、锁文件、文档和预构建控制台。
+4. 在项目目录执行 `uv sync --locked --no-dev`，由 uv 准备 Python 和运行依赖。
+5. 输出项目路径与启动命令。
+
+同名目录已存在时脚本停止，保留已有配置和文件。依赖安装失败时保留解压目录，按错误提示补齐条件后，可进入该目录重新执行 `uv sync --locked --no-dev`。后续启动使用已安装版本。
+
+也可先下载或克隆仓库，在准备存放项目的位置执行本地的 `scripts/install.sh` 或 `scripts/install.ps1`。安装位置取决于执行时的当前目录，而非脚本所在目录。
+
+### Windows 或已有 X11 桌面
+
+安装完成后，按脚本输出进入 `QuitBot_<实际版本>` 目录。在同一图形会话中登录官方 QQ，再启动后端：
+
+```sh
+uv run --locked --no-dev python -m quitbot_backend
+```
+
+Linux 的 QQ 与后端需共享 `DISPLAY`、`XAUTHORITY` 和 `DBUS_SESSION_BUS_ADDRESS`。QQ 启动前启用 `org.a11y.Status` 的 `IsEnabled`、`ScreenReaderEnabled`，并使用 `--force-renderer-accessibility`。
+
+### 纯无头 Linux
+
+进入安装目录，以普通 Linux 用户运行下面的入口，它同时启动 QQ 和后端：
+
+```bash
+uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /opt/QQ/qq
+```
+
+按实际安装位置修改 QQ 路径。入口创建独立 D-Bus、带认证的 Xvfb 和 Openbox，并自动启用辅助技术。通过按需连接的桌面查看工具登录 QQ，查看连接断开后图形会话继续运行。查看工具绑定回环地址并通过 SSH 转发访问；长期运行时由 systemd 监督此入口。多个实例分别使用独立用户 / 图形会话、显示编号和配置位置，详情见 [README](../README.md#快速开始)。
+
+## 首次启动
+
+启动后打开终端显示的控制台地址，默认是 `http://127.0.0.1:6699/`，使用临时密码登录并完成改密。
 
 运行配置自动生成，通过控制台或文件编辑维护。
 
@@ -148,15 +197,28 @@ URL、令牌、用途或启用状态变化按账号热更新。该账号先停�
 
 ## 前端运行
 
-执行 `npm --prefix frontend ci` 和 `npm --prefix frontend run build`，再启动后端。前端产物写入 `src/quitbot_backend/_webui/`，后端按包路径加载资源，在同一本机地址提供控制台、登录与配置 WS，浏览器直接打开 `http://127.0.0.1:6699/`。
-
-开发模式使用 `npm --prefix frontend run dev`，页面位于 `http://127.0.0.1:5173/`，Vite 将 `/ws` 和 `/accounts` 代理到本机后端。默认读取 `QUITBOT_CONFIG` 或 `config/accounts.json` 中的 WebUI 地址与端口，并使用 `QUITBOT_MANAGEMENT_PORT` 覆盖值；调整后重启 Vite。`npm run preview` 使用 4173 端口及相同代理。控制台自动选择同源服务。
+Release 安装后，启动后端即可使用控制台，无需单独启动前端进程。后端从包内 `_webui/` 加载预构建资源，在同一本机地址提供控制台、登录与配置 WS，浏览器直接打开 `http://127.0.0.1:6699/`。
 
 登录后在「账号连接」探查并连接账号，在「账号设置」分别维护配置，在「其他设置」维护 WebUI、登录和完整配置。控制台管理和业务调用均经 WS；Swagger 使用 HTTP API。
 
+## 前端开发
+
+修改前端或从 Git 仓库自行构建控制台时，需要 Node.js 22.12+ / npm。在源码根目录执行：
+
+```sh
+uv sync --locked
+npm --prefix frontend ci
+npm --prefix frontend run build
+uv run python -m quitbot_backend
+```
+
+前端构建产物写入 `src/quitbot_backend/_webui/`。修改前端源码后重新构建，后端便会提供更新后的控制台。使用 Release 源码包且只修改后端时，可以继续使用包内预构建资源。
+
+开发模式使用 `npm --prefix frontend run dev`，页面位于 `http://127.0.0.1:5173/`，Vite 将 `/ws` 和 `/accounts` 代理到本机后端。默认读取 `QUITBOT_CONFIG` 或 `config/accounts.json` 中的 WebUI 地址与端口，并使用 `QUITBOT_MANAGEMENT_PORT` 覆盖值；调整后重启 Vite。`npm run preview` 使用 4173 端口及相同代理。控制台自动选择同源服务。
+
 ## 构建与分发检查
 
-在根目录执行：
+以下流程供自行构建和发布使用，需要 Node.js 22.12+ / npm。在源码根目录执行：
 
 ```powershell
 uv sync --locked
@@ -176,11 +238,12 @@ Linux CI 在 Ubuntu 24.04 安装原生无障碍依赖，执行静态检查和后
 
 ### GitHub Releases
 
-[Release 工作流](../.github/workflows/release.yml) 在推送 `v*` 标签时自动运行。标签必须与该提交的 `pyproject.toml` 中版本一致，例如 `0.13.0` 对应 `v0.13.0`。发布前同步修改 `pyproject.toml` 和 `src/quitbot_backend/__init__.py` 中的版本，更新 `uv.lock`，再运行 `uv run python -m quitbot_backend.export_schema` 和 `npm --prefix frontend run types`。前端版本同步维护在 `frontend/package.json` 和 `frontend/package-lock.json`，完成后提交变更。
+[Release 工作流](../.github/workflows/release.yml) 在推送 `v*` 标签时自动运行。标签采用 `v<版本>` 格式，必须与该提交的 `pyproject.toml` 中版本一致。发布前同步修改 `pyproject.toml` 和 `src/quitbot_backend/__init__.py` 中的版本，更新 `uv.lock`，再运行 `uv run python -m quitbot_backend.export_schema` 和 `npm --prefix frontend run types`。前端版本同步维护在 `frontend/package.json` 和 `frontend/package-lock.json`，完成后提交变更。
 
 ```bash
-git tag -a v0.13.0 -m "QuitBot v0.13.0"
-git push origin v0.13.0
+quitbot_version=$(uv run python -c 'from quitbot_backend import __version__; print(__version__)')
+git tag -a "v$quitbot_version" -m "QuitBot v$quitbot_version"
+git push origin "v$quitbot_version"
 ```
 
 工作流复用 Windows 和 Linux CI，全部检查通过后创建 Release，并自动生成发布说明。附件包含：
@@ -190,4 +253,4 @@ git push origin v0.13.0
 - `LICENSE`：项目许可证。
 - `THIRD_PARTY_LICENSES.txt`：控制台第三方组件许可声明。
 
-带 `a`、`b`、`rc` 或 `dev` 版本标记的发布自动标为预发布。手动触发时使用标签引用，例如 `gh workflow run release.yml --ref v0.13.0`；分支引用和版本不匹配的标签会在构建前报错。发布使用 GitHub Actions 自带的 `GITHUB_TOKEN`，无需额外配置发布凭证。
+带 `a`、`b`、`rc` 或 `dev` 版本标记的发布自动标为预发布。手动触发时使用标签引用，例如 `gh workflow run release.yml --ref "v$quitbot_version"`；分支引用和版本不匹配的标签会在构建前报错。发布使用 GitHub Actions 自带的 `GITHUB_TOKEN`，无需额外配置发布凭证。

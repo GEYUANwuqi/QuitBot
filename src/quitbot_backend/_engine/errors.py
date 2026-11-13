@@ -6,6 +6,10 @@ class ControlUnavailable(QuitBotError):
     pass
 
 
+class ControlTreeChanged(ControlUnavailable):
+    """The provider rebuilt a control tree during a read; reacquire the read only."""
+
+
 class TargetMismatch(QuitBotError):
     pass
 

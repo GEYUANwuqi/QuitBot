@@ -13,10 +13,6 @@ from quitbot_backend._engine.errors import (
     MutationOutcomeUnknown,
     TargetMismatch,
 )
-from quitbot_backend._engine.infrastructure.uia.essence import parse_essences
-from quitbot_backend._engine.infrastructure.uia.faces import FacesUI
-from quitbot_backend._engine.infrastructure.uia.group_settings import GroupSettingsUI
-from quitbot_backend._engine.infrastructure.uia.notices import NoticesUI
 from quitbot_backend._engine.models import (
     Message,
     Node,
@@ -24,12 +20,17 @@ from quitbot_backend._engine.models import (
     message_ready,
     parse_messages,
 )
+from quitbot_backend._engine.ui.workflows.essence import parse_essences
+from quitbot_backend._engine.ui.workflows.faces import FacesUI
+from quitbot_backend._engine.ui.workflows.group_settings import GroupSettingsUI
+from quitbot_backend._engine.ui.workflows.notices import NoticesUI
 
 
 class Control:
     def __init__(self, node):
         self.node = node
         self.ClassName, self.Name = node.class_name, node.name
+        self.ControlTypeName = node.type
         self.children = [Control(c) for c in node.children]
 
     def GetChildren(self):
@@ -87,6 +88,45 @@ def test_join_policy_rejects_multiple_selected_radio_controls():
         reader._read(panel, "join_mode")
 
 
+def test_closed_admission_reports_hidden_invitation_settings_as_unobserved():
+    reader, panel = policy_reader()
+    wrapper = panel.children[0]
+    wrapper.children = wrapper.children[:5]
+    reader._radio(panel, "需要身份验证").ClassName = "q-radio"
+    reader._radio(panel, "不允许任何人加群").ClassName += " is-checked"
+    assert reader._policy(Target("20001", "测试群"), panel) == GroupJoinPolicy(
+        "20001", "closed", None, None, None, None, None
+    )
+
+
+def test_group_tag_labels_can_be_exposed_only_as_child_text():
+    reader, _ = policy_reader()
+    panel = Control(
+        Node(
+            children=(
+                Node(type="TextControl", name="群标签（1/5）"),
+                Node(
+                    type="ListItemControl",
+                    children=(
+                        Node(
+                            class_name="create-group-tag",
+                            children=(
+                                Node(type="TextControl", name="合成标签"),
+                                Node(class_name="q-svg-icon"),
+                            ),
+                        ),
+                    ),
+                ),
+                Node(type="ListItemControl", class_name="custom-tag-wrapper"),
+            )
+        )
+    )
+    assert reader._tags(panel) == ("合成标签",)
+    panel.children.append(panel.children[1])
+    with pytest.raises(ControlUnavailable, match="ambiguous"):
+        reader._tags(panel)
+
+
 @pytest.mark.parametrize(
     "field,value",
     [
@@ -140,7 +180,7 @@ def policy_writer(monkeypatch, uncertain=False):
             raise ControlUnavailable("Readback timed out")
 
         monkeypatch.setattr(
-            "quitbot_backend._engine.infrastructure.uia.group_settings.wait_until", failed
+            "quitbot_backend._engine.ui.workflows.group_settings.wait_until", failed
         )
     return writer, state
 
@@ -178,7 +218,8 @@ def test_essence_fixture_retains_ui_metadata_without_server_ids():
 
 def test_essence_does_not_report_loading_as_empty():
     title = Node(
-        class_name="page-title", children=(Node(type="TextControl", name="群精华-测试群"),)
+        class_name="page-title",
+        children=(Node(type="TextControl", name="群精华-测试群"),),
     )
     with pytest.raises(ControlUnavailable):
         parse_essences(Node(children=(title,)), "1", "测试群")
@@ -274,7 +315,7 @@ def test_group_only_extensions_reject_private_scopes_before_dispatch():
 
 
 def test_announcement_window_matching_deduplicates_handles_without_merging_accounts():
-    from quitbot_backend._engine.infrastructure.uia.notices import matching_windows
+    from quitbot_backend._engine.ui.workflows.notices import matching_windows
 
     def window(pid, hwnd):
         return SimpleNamespace(
@@ -341,9 +382,11 @@ def test_async_face_returns_receipt_on_the_com_worker_and_onebot_indexes_it():
                 )
                 assert response["retcode"] == 0
                 assert response["data"]["_quitbot"]["face_id"] is None
-                assert adapter.index.resolve(
-                    10001, response["data"]["message_id"]
-                ) == ("group", "20001", "native-face")
+                assert adapter.index.resolve(10001, response["data"]["message_id"]) == (
+                    "group",
+                    "20001",
+                    "native-face",
+                )
             finally:
                 adapter.index.close()
 

@@ -4,7 +4,7 @@ import pytest
 
 from quitbot_backend._engine.errors import ControlUnavailable
 from quitbot_backend._engine.models import Target
-from quitbot_backend._engine.uia import UIABackend, navigation_label_matches
+from quitbot_backend._engine.ui.backend import DesktopBackend, navigation_label_matches
 
 
 @pytest.mark.parametrize("operation", ["navigate", "profile"])
@@ -12,13 +12,13 @@ from quitbot_backend._engine.uia import UIABackend, navigation_label_matches
 def test_pending_modal_blocks_keyboard_navigation_before_any_input(
     monkeypatch, operation, modal_class
 ):
-    from quitbot_backend._engine.infrastructure.uia import inspection
+    from quitbot_backend._engine.ui.workflows import inspection
 
     def forbidden(*args, **kwargs):
         pytest.fail("A pending send/file dialog must not receive activation or Enter")
 
     monkeypatch.setattr(inspection, "require_unlocked", lambda _: None)
-    b = UIABackend.__new__(UIABackend)
+    b = DesktopBackend.__new__(DesktopBackend)
     b.window = SimpleNamespace(SetActive=forbidden)
     b.main_window = b.window
     b.auto = SimpleNamespace(SendKeys=forbidden)
@@ -49,7 +49,7 @@ def test_navigation_uses_visible_content_when_toggle_state_is_stale():
     pane = SimpleNamespace(
         ControlTypeName="PaneControl", Name="联系人列表", IsOffscreen=False
     )
-    backend = UIABackend.__new__(UIABackend)
+    backend = DesktopBackend.__new__(DesktopBackend)
     backend.window = object()
     backend.auto = SimpleNamespace(PatternId=SimpleNamespace(TogglePattern=1))
     backend.walk = lambda _: [nav, pane] if switched[0] else [nav]
@@ -58,7 +58,7 @@ def test_navigation_uses_visible_content_when_toggle_state_is_stale():
 
 
 def test_visible_navigation_view_is_not_toggled_away():
-    backend = UIABackend.__new__(UIABackend)
+    backend = DesktopBackend.__new__(DesktopBackend)
     backend.window = object()
     backend.walk = lambda _: [
         SimpleNamespace(
@@ -77,7 +77,7 @@ def test_unread_badges_do_not_break_navigation_or_match_unrelated_names():
 
 
 def test_visible_verified_contact_details_are_not_deselected():
-    b = UIABackend.__new__(UIABackend)
+    b = DesktopBackend.__new__(DesktopBackend)
     row = SimpleNamespace(
         GetPattern=lambda _: (_ for _ in ()).throw(
             AssertionError("must not toggle a valid selection")
@@ -106,7 +106,7 @@ def test_cached_selected_row_with_empty_details_is_refreshed_before_routing():
 
         Toggle = staticmethod(toggle)
 
-    b = UIABackend.__new__(UIABackend)
+    b = DesktopBackend.__new__(DesktopBackend)
     b.auto = SimpleNamespace(PatternId=SimpleNamespace(TogglePattern=1))
     row = SimpleNamespace(GetPattern=lambda _: Pattern())
     assert (

@@ -14,12 +14,12 @@ from quitbot_backend._engine.errors import (
     DraftNotEmpty,
     TargetMismatch,
 )
-from quitbot_backend._engine.infrastructure.uia.secondary import (
+from quitbot_backend._engine.models import Node, Target
+from quitbot_backend._engine.ui.workflows.secondary import (
     SecondaryUI,
     more_reaction_control,
     parse_file_view,
 )
-from quitbot_backend._engine.models import Node, Target
 
 
 def text(name):
@@ -174,7 +174,7 @@ def test_member_submenu_refuses_to_invoke_a_business_leaf():
 
 
 def test_group_application_navigation_prefers_focused_keyboard_activation(monkeypatch):
-    import quitbot_backend._engine.infrastructure.uia.secondary as module
+    import quitbot_backend._engine.ui.workflows.secondary as module
 
     calls = []
     button = SimpleNamespace(IsKeyboardFocusable=True)
@@ -198,7 +198,7 @@ def test_group_application_navigation_prefers_focused_keyboard_activation(monkey
 def test_reaction_panel_cleanup_verifies_dismissal_and_preserves_new_drafts(
     monkeypatch, draft_appears
 ):
-    import quitbot_backend._engine.infrastructure.uia.secondary as module
+    import quitbot_backend._engine.ui.workflows.secondary as module
 
     calls = []
     visible = [False]

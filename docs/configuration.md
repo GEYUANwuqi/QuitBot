@@ -7,7 +7,7 @@
 Ubuntu 24.04 先安装无障碍与图形会话的系统依赖：
 
 ```bash
-sudo apt-get install at-spi2-core gir1.2-atspi-2.0 libgirepository1.0-dev libcairo2-dev python3-dev pkg-config xvfb openbox dbus-x11 xauth x11-utils xdotool xclip
+sudo apt-get install at-spi2-core gir1.2-atspi-2.0 libgirepository1.0-dev libcairo2-dev python3-dev pkg-config xvfb openbox stalonetray dbus-x11 xauth x11-utils xdotool xclip
 ```
 
 需要隔离自动化和日常桌面时，可自行使用 Anode 或其他独立 Windows 会话。Anode 为可选环境，项目不附带其安装包。QQ 独立聊天窗口共享所在桌面的输入焦点。
@@ -58,7 +58,7 @@ Linux 的 QQ 与后端需共享 `DISPLAY`、`XAUTHORITY` 和 `DBUS_SESSION_BUS_A
 uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /opt/QQ/qq
 ```
 
-按实际安装位置修改 QQ 路径。入口创建独立 D-Bus、带认证的 Xvfb 和 Openbox，并自动启用辅助技术。通过按需连接的桌面查看工具登录 QQ，查看连接断开后图形会话继续运行。查看工具绑定回环地址并通过 SSH 转发访问；长期运行时由 systemd 监督此入口。多个实例分别使用独立用户 / 图形会话、显示编号和配置位置，详情见 [README](../README.md#快速开始)。
+按实际安装位置修改 QQ 路径。入口创建独立 D-Bus、带认证的 Xvfb、Openbox 和系统托盘，并自动启用辅助技术。通过按需连接的桌面查看工具登录 QQ，查看连接断开后图形会话继续运行。QQ 收起到托盘后，点击桌面左上角的 QQ 托盘图标恢复窗口；监听期间保持聊天窗口展开。查看工具绑定回环地址并通过 SSH 转发访问；长期运行时由 systemd 监督此入口。多个实例分别使用独立用户 / 图形会话、显示编号和配置位置，详情见 [README](../README.md#快速开始)。
 
 ## 首次启动
 
@@ -115,7 +115,7 @@ uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /o
 
 进入「账号连接」页面时主动探查一次当前图形会话内带 QQ 主窗口的进程，缓存进程名、窗口句柄、进程 ID 和探查时间。枚举只读取 Win32 / X11 元数据，不初始化无障碍控件读取器、切换焦点或获取账号资料。后端启动及进入其他页面不触发扫描。
 
-页面读取缓存不会重新探查。打开 QQ 或窗口变化后，点击「刷新探查」。同时发起的刷新共用一次扫描，已退出或无法读取进程信息的窗口跳过。列表同时显示后端的 Windows 会话 ID，使用 Anode 时将 QQ 与后端放在同一子会话。
+页面读取缓存不会重新探查。打开 QQ 或窗口变化后，点击「刷新探查」。同时发起的刷新共用一次扫描，已退出或无法读取进程信息的窗口跳过。Windows 列表同时显示后端的会话 ID，使用 Anode 时将 QQ 与后端放在同一子会话；Linux 的该字段为 `null`，窗口范围由 `DISPLAY` 决定。
 
 点击「连接账号」后核对所选窗口的进程，沿用桌面事务锁读取该账号的昵称、QQ 号与头像。读取 QQ 号会打开并关闭本人资料卡，头像从无障碍接口定位的头像控件区域读取。三项资料完整后保存账号和窗口，保留已有监听与网络配置，并在绑定时再次核验 QQ 号。连接成功的账号资料缓存在 `activated_accounts`，供账号设置列表使用。
 

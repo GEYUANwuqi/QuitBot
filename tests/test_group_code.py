@@ -1,7 +1,7 @@
 import pytest
 
 from quitbot_backend._engine.errors import TargetMismatch
-from quitbot_backend._engine.uia import validate_group_code
+from quitbot_backend._engine.ui.backend import validate_group_code
 
 
 def test_group_verification_requires_the_explicit_numeric_code_not_name_or_substring():

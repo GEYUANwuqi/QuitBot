@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from quitbot_backend._engine.errors import ControlUnavailable, TargetMismatch
-from quitbot_backend._engine.infrastructure.uia import profile_cards as module
+from quitbot_backend._engine.ui.workflows import profile_cards as module
 
 
 def lab(monkeypatch):

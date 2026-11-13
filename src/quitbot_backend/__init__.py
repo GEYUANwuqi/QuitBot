@@ -1,3 +1,3 @@
-"""QuitBot account service. Native UIA implementation is private."""
+"""QuitBot account service. Native UI implementation is private."""
 
-__version__ = "0.13.0"
+__version__ = "0.14.0.dev1"

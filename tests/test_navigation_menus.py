@@ -7,8 +7,8 @@ import pytest
 from quitbot_backend._engine.adapters.onebot.api import OneBotAdapter
 from quitbot_backend._engine.domain.controls import MenuAction
 from quitbot_backend._engine.errors import ControlUnavailable, TargetMismatch
-from quitbot_backend._engine.infrastructure.uia.navigation import NavigationUI
 from quitbot_backend._engine.models import Target
+from quitbot_backend._engine.ui.workflows.navigation import NavigationUI
 
 
 def test_menu_area_allowlists_reject_unknown_requests_before_ui_access():
@@ -23,7 +23,7 @@ def test_menu_area_allowlists_reject_unknown_requests_before_ui_access():
 def test_global_menu_uses_bound_main_window_and_restores_detached_reference(
     monkeypatch, fail_read
 ):
-    import quitbot_backend._engine.infrastructure.uia.navigation as module
+    import quitbot_backend._engine.ui.workflows.navigation as module
 
     calls = []
     detached = object()

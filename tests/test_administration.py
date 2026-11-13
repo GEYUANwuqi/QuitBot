@@ -9,17 +9,17 @@ from quitbot_backend._engine.errors import (
     MutationOutcomeUnknown,
     TargetMismatch,
 )
-from quitbot_backend._engine.infrastructure.uia.administration import (
+from quitbot_backend._engine.models import GroupMemberInfo, Node, Target
+from quitbot_backend._engine.ui.workflows.administration import (
     AdministrationUI,
     admin_state,
 )
-from quitbot_backend._engine.models import GroupMemberInfo, Node, Target
 
 
 @pytest.fixture(autouse=True)
 def native_guards(monkeypatch):
     monkeypatch.setattr(
-        "quitbot_backend._engine.infrastructure.uia.administration.require_unlocked", lambda _: None
+        "quitbot_backend._engine.ui.workflows.administration.require_unlocked", lambda _: None
     )
 
     def wait_once(read, predicate=bool, **_):
@@ -29,7 +29,7 @@ def native_guards(monkeypatch):
         return result
 
     monkeypatch.setattr(
-        "quitbot_backend._engine.infrastructure.uia.administration.wait_until", wait_once
+        "quitbot_backend._engine.ui.workflows.administration.wait_until", wait_once
     )
 
 

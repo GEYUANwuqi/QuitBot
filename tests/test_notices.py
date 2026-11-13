@@ -6,11 +6,11 @@ import pytest
 from quitbot_backend._engine.adapters.onebot.api import OneBotAdapter
 from quitbot_backend._engine.domain.notices import GroupNotice, GroupNotices
 from quitbot_backend._engine.errors import ControlUnavailable, TargetMismatch
-from quitbot_backend._engine.infrastructure.uia.notices import (
+from quitbot_backend._engine.models import Node
+from quitbot_backend._engine.ui.workflows.notices import (
     parse_notices,
     unique_notice,
 )
-from quitbot_backend._engine.models import Node
 
 
 def fixture(name="测试群", info=("测试账号", "21:17"), body=True, media=False):

@@ -1,9 +1,57 @@
+from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
 
 import pytest
 
-from quitbot_backend._engine.infrastructure.uia import chat
-from quitbot_backend._engine.models import Node
+from quitbot_backend._engine.errors import ControlUnavailable, MutationOutcomeUnknown
+from quitbot_backend._engine.models import Node, Target
+from quitbot_backend._engine.ui.workflows import chat
+
+
+@pytest.mark.parametrize("persisted", ["account nickname", "unexpected"])
+def test_clear_own_card_accepts_native_nickname_and_reports_unknown_on_mismatch(
+    monkeypatch, persisted
+):
+    state = {"opens": 0}
+    field = SimpleNamespace(Value="custom card")
+    field.GetValuePattern = lambda: field
+    field.SetValue = lambda value, **_: setattr(field, "Value", value)
+    calls = []
+    b = SimpleNamespace(
+        account="account nickname", editor=lambda: object(),
+        snapshot=lambda _: Node(), focus_control=lambda _: None,
+        ensure_focus=lambda _: None, focus_editor=lambda: None,
+        auto=SimpleNamespace(SendKeys=lambda key, **_: calls.append(key)),
+    )
+    ui = chat.ChatUI(SimpleNamespace(backend=b))
+    ui.checked = lambda _: nullcontext(Target("12345", "test"))
+    ui._field = lambda *_: field
+    ui._settings_panel = lambda: object()
+    ui._close_owned_panel = lambda: None
+
+    @contextmanager
+    def more():
+        state["opens"] += 1
+        if state["opens"] == 2:
+            field.Value = persisted
+        yield object()
+
+    def once(read, predicate=bool, **_):
+        value = read()
+        if not predicate(value):
+            raise ControlUnavailable("Card did not persist")
+        return value
+
+    ui.more = more
+    monkeypatch.setattr(chat, "wait_until", once)
+    monkeypatch.setattr(chat.time, "sleep", lambda _: None)
+    if persisted == "unexpected":
+        with pytest.raises(MutationOutcomeUnknown):
+            ui.set_own_card("12345", "")
+    else:
+        receipt = ui.set_own_card("12345", "")
+        assert receipt.before == "custom card" and receipt.after == persisted
+    assert calls == ["{Enter}"]
 
 
 @pytest.mark.parametrize("text", ["", "unsent draft"])

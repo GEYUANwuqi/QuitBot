@@ -5,8 +5,8 @@ import pytest
 
 from quitbot_backend._engine.domain.controls import ChatSettings
 from quitbot_backend._engine.errors import ControlUnavailable
-from quitbot_backend._engine.infrastructure.uia.chat import ChatUI
 from quitbot_backend._engine.models import Target
+from quitbot_backend._engine.ui.workflows.chat import ChatUI
 
 
 def blocking_ui(kind="private", confirmation=False):

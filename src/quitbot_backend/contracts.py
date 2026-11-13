@@ -37,7 +37,7 @@ from ._engine.domain.notices import (
     GroupNotices,
 )
 from ._engine.domain.reactions import MessageReactions, ReactionReceipt
-from ._engine.domain.stickers import FavoriteSticker
+from ._engine.domain.stickers import FavoriteSticker, StickerImportReceipt
 from ._engine.models import (
     ConversationCandidate,
     ConversationInfo,
@@ -104,7 +104,7 @@ class ClientVersion(BaseModel):
 
 class StoragePaths(BaseModel):
     download_directory: str
-    data_directory: str
+    data_directory: str | None = None
 
 
 class ProtocolSegment(BaseModel):
@@ -707,14 +707,17 @@ add(
 )
 add(
     "x_import_stickers",
-    list[FavoriteSticker],
-    {**target, "paths": (list[Text], ...)},
+    StickerImportReceipt,
+    {
+        **target,
+        "paths": (list[Text], ...),
+    },
     write=True,
     added=True,
     dispatch="native",
     summary="导入PNG或GIF表情",
 )
-selector = {**target, "selector": (str, ...)}
+selector = {**target, "selector": (str | FavoriteSticker, ...)}
 add(
     "x_move_sticker_first",
     FavoriteSticker,

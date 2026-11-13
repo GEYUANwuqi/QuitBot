@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from quitbot_backend._engine.infrastructure.atspi import snapshot as ADAPTER
 from quitbot_backend._engine.models import MessageCursor, parse_messages
+from quitbot_backend._engine.platforms.linux import snapshot as ADAPTER
 
 FIXTURE = Path(__file__).parent / "fixtures" / "linux_atspi_messages.json"
 

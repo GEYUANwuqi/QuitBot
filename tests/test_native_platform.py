@@ -5,7 +5,7 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
-from quitbot_backend._engine import native
+from quitbot_backend._engine import platforms as native
 from quitbot_backend._engine.errors import ControlUnavailable
 
 

@@ -2,11 +2,11 @@ import pytest
 
 from quitbot_backend._engine.errors import ControlUnavailable, TargetMismatch
 from quitbot_backend._engine.models import Target
-from quitbot_backend._engine.uia import UIABackend
+from quitbot_backend._engine.ui.backend import DesktopBackend
 
 
 def make_backend(error):
-    b = UIABackend.__new__(UIABackend)
+    b = DesktopBackend.__new__(DesktopBackend)
     b.auto = object()
     b.window = object()
     b.walk = lambda _: []

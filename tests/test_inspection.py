@@ -3,7 +3,8 @@ from types import SimpleNamespace
 import pytest
 
 from quitbot_backend._engine.errors import ControlUnavailable
-from quitbot_backend._engine.infrastructure.uia.inspection import (
+from quitbot_backend._engine.platforms.windows.automation import Automation
+from quitbot_backend._engine.ui.workflows.inspection import (
     DesktopLocked,
     DesktopUnavailable,
     clipped_reaction_item,
@@ -24,6 +25,12 @@ class Control:
         return self.parent
 
 
+def windows_provider(**controls):
+    provider = Automation.__new__(Automation)
+    provider.controls = SimpleNamespace(**controls)
+    return provider
+
+
 def test_disappearing_root_is_refreshed_and_second_observation_still_blocks_lock_screen():
     class Transient(Exception):
         hresult = -2147220991
@@ -40,7 +47,7 @@ def test_disappearing_root_is_refreshed_and_second_observation_still_blocks_lock
         return locked
 
     with pytest.raises(DesktopLocked):
-        require_unlocked(SimpleNamespace(GetForegroundControl=foreground))
+        require_unlocked(windows_provider(GetForegroundControl=foreground))
     assert reads[0] == 2
 
 
@@ -62,7 +69,7 @@ def environment(*, locked=False, occluded=False):
     if locked:
         front.Name = "Windows 默认锁屏界面"
         front.ClassName = "Windows.UI.Core.CoreWindow"
-    auto = SimpleNamespace(
+    auto = windows_provider(
         GetForegroundControl=lambda: front,
         GetRootControl=lambda: SimpleNamespace(GetChildren=lambda: [front]),
         ControlsAreSame=lambda a, b: a is b,
@@ -137,6 +144,31 @@ def test_occluded_control_never_gets_pointer_movement():
     with pytest.raises(ControlUnavailable), hover_control(backend, target):
         pass
     assert calls == ["activate"]
+
+
+@pytest.mark.parametrize("allow_clipped", [False, True])
+def test_offscreen_reaction_requires_verified_clipped_menu_geometry(allow_clipped):
+    backend, target, calls, *_ = environment()
+    window = backend.window
+    window.NativeWindowHandle, window.ProcessId = 10, 20
+    window.BoundingRectangle = SimpleNamespace(left=0, top=0, right=600, bottom=900)
+    menu = Control(window)
+    menu.ControlTypeName = "MenuControl"
+    menu.BoundingRectangle = SimpleNamespace(left=0, top=100, right=200, bottom=400)
+    target.parent, target.ClassName, target.IsOffscreen = menu, "menu-stickers-item", True
+    target.ProcessId, target.GetTopLevelControl = 20, lambda: window
+    target.BoundingRectangle.right, target.BoundingRectangle.bottom = 30, 30
+    hit = Control()
+    hit.ProcessId, hit.GetTopLevelControl = 20, lambda: window
+    backend.auto.ControlFromPoint = lambda *_: hit
+    backend.auto.ControlFromCursor = lambda: hit
+    if allow_clipped:
+        with hover_control(backend, target, allow_clipped_reaction=True):
+            assert calls.count("hover") == 1
+    else:
+        with pytest.raises(ControlUnavailable), hover_control(backend, target):
+            pass
+        assert "hover" not in calls
 
 
 def test_probe_does_not_override_a_person_or_restore_pointer_after_locking():

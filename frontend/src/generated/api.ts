@@ -2384,13 +2384,26 @@ export interface components {
             kind: string;
         };
         /** FavoriteSticker */
-        FavoriteSticker: {
+        "FavoriteSticker-Input": {
             /** Account */
             account: string;
             /** Hwnd */
             hwnd: number;
             /** Runtime Id */
-            runtime_id: number[];
+            runtime_id: (number | string)[];
+            /** Name */
+            name: string;
+            /** Index */
+            index: number;
+        };
+        /** FavoriteSticker */
+        "FavoriteSticker-Output": {
+            /** Account */
+            account: string;
+            /** Hwnd */
+            hwnd: number;
+            /** Runtime Id */
+            runtime_id: (number | string)[];
             /** Name */
             name: string;
             /** Index */
@@ -2614,11 +2627,11 @@ export interface components {
             /** Verification */
             verification: string | null;
             /** Member Invites */
-            member_invites: boolean;
+            member_invites: boolean | null;
             /** Invite Approval */
             invite_approval: string | null;
             /** Bot Invites */
-            bot_invites: boolean;
+            bot_invites: boolean | null;
             /** Bot Invite Approval */
             bot_invite_approval: string | null;
         };
@@ -3382,7 +3395,7 @@ export interface components {
             /** Target Id */
             target_id: string | number;
             /** Selector */
-            selector: string;
+            selector: string | components["schemas"]["FavoriteSticker-Input"];
         };
         /** Params_x_disconnect */
         Params_x_disconnect: Record<string, never>;
@@ -3717,7 +3730,7 @@ export interface components {
             /** Target Id */
             target_id: string | number;
             /** Selector */
-            selector: string;
+            selector: string | components["schemas"]["FavoriteSticker-Input"];
         };
         /** Params_x_get_storage_paths */
         Params_x_get_storage_paths: Record<string, never>;
@@ -3784,7 +3797,7 @@ export interface components {
             /** Target Id */
             target_id: string | number;
             /** Selector */
-            selector: string;
+            selector: string | components["schemas"]["FavoriteSticker-Input"];
         };
         /** Params_x_poke_friend */
         Params_x_poke_friend: {
@@ -4035,7 +4048,7 @@ export interface components {
             /** Target Id */
             target_id: string | number;
             /** Selector */
-            selector: string;
+            selector: string | components["schemas"]["FavoriteSticker-Input"];
             /** Value */
             value: string;
         };
@@ -4339,7 +4352,7 @@ export interface components {
             /** Retcode */
             retcode: number;
             /** Data */
-            data?: components["schemas"]["FavoriteSticker"] | components["schemas"]["UnknownOutcome"] | null;
+            data?: components["schemas"]["FavoriteSticker-Output"] | components["schemas"]["UnknownOutcome"] | null;
             echo?: components["schemas"]["JsonValue"];
             /** Message */
             message?: string | null;
@@ -5093,6 +5106,23 @@ export interface components {
             /** Wording */
             wording?: string | null;
         };
+        /** Reply[StickerImportReceipt] */
+        Reply_StickerImportReceipt_: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "failed";
+            /** Retcode */
+            retcode: number;
+            /** Data */
+            data?: components["schemas"]["StickerImportReceipt"] | components["schemas"]["UnknownOutcome"] | null;
+            echo?: components["schemas"]["JsonValue"];
+            /** Message */
+            message?: string | null;
+            /** Wording */
+            wording?: string | null;
+        };
         /** Reply[StoragePaths] */
         Reply_StoragePaths_: {
             /**
@@ -5222,7 +5252,7 @@ export interface components {
             /** Retcode */
             retcode: number;
             /** Data */
-            data?: components["schemas"]["FavoriteSticker"][] | components["schemas"]["UnknownOutcome"] | null;
+            data?: components["schemas"]["FavoriteSticker-Output"][] | components["schemas"]["UnknownOutcome"] | null;
             echo?: components["schemas"]["JsonValue"];
             /** Message */
             message?: string | null;
@@ -5531,12 +5561,26 @@ export interface components {
             /** Url */
             url: string;
         };
+        /** StickerImportReceipt */
+        StickerImportReceipt: {
+            /** Imported Count */
+            imported_count: number;
+            /** Collection */
+            collection: components["schemas"]["FavoriteSticker-Output"][];
+            /** Added */
+            added: components["schemas"]["FavoriteSticker-Output"][] | null;
+            /**
+             * Verified In Ui
+             * @default true
+             */
+            verified_in_ui: boolean;
+        };
         /** StoragePaths */
         StoragePaths: {
             /** Download Directory */
             download_directory: string;
             /** Data Directory */
-            data_directory: string;
+            data_directory?: string | null;
         };
         /** SubmenuInfo */
         SubmenuInfo: {
@@ -9633,7 +9677,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Reply_list_FavoriteSticker__"];
+                    "application/json": components["schemas"]["Reply_StickerImportReceipt_"];
                 };
             };
             /** @description Validation Error */

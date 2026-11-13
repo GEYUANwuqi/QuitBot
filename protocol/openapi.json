@@ -3,7 +3,7 @@
   "info": {
     "title": "QuitBot Account API",
     "description": "One QQ account per service. HTTP actions and WS share validation and result types. UI observations are partial; mutations are never retried automatically.",
-    "version": "0.13.0"
+    "version": "0.14.0.dev1"
   },
   "paths": {
     "/health": {
@@ -5819,7 +5819,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Reply_list_FavoriteSticker__"
+                  "$ref": "#/components/schemas/Reply_StickerImportReceipt_"
                 }
               }
             }
@@ -6670,7 +6670,7 @@
         ],
         "title": "EssenceItem"
       },
-      "FavoriteSticker": {
+      "FavoriteSticker-Input": {
         "properties": {
           "account": {
             "type": "string",
@@ -6682,7 +6682,58 @@
           },
           "runtime_id": {
             "items": {
-              "type": "integer"
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Runtime Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "account",
+          "hwnd",
+          "runtime_id",
+          "name",
+          "index"
+        ],
+        "title": "FavoriteSticker"
+      },
+      "FavoriteSticker-Output": {
+        "properties": {
+          "account": {
+            "type": "string",
+            "title": "Account"
+          },
+          "hwnd": {
+            "type": "integer",
+            "title": "Hwnd"
+          },
+          "runtime_id": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                }
+              ]
             },
             "type": "array",
             "title": "Runtime Id"
@@ -7357,7 +7408,14 @@
             "title": "Verification"
           },
           "member_invites": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Member Invites"
           },
           "invite_approval": {
@@ -7372,7 +7430,14 @@
             "title": "Invite Approval"
           },
           "bot_invites": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Bot Invites"
           },
           "bot_invite_approval": {
@@ -9610,7 +9675,14 @@
             "title": "Target Id"
           },
           "selector": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/components/schemas/FavoriteSticker-Input"
+              }
+            ],
             "title": "Selector"
           }
         },
@@ -10988,7 +11060,14 @@
             "title": "Target Id"
           },
           "selector": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/components/schemas/FavoriteSticker-Input"
+              }
+            ],
             "title": "Selector"
           }
         },
@@ -11288,7 +11367,14 @@
             "title": "Target Id"
           },
           "selector": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/components/schemas/FavoriteSticker-Input"
+              }
+            ],
             "title": "Selector"
           }
         },
@@ -12280,7 +12366,14 @@
             "title": "Target Id"
           },
           "selector": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/components/schemas/FavoriteSticker-Input"
+              }
+            ],
             "title": "Selector"
           },
           "value": {
@@ -13302,7 +13395,7 @@
           "data": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/FavoriteSticker"
+                "$ref": "#/components/schemas/FavoriteSticker-Output"
               },
               {
                 "$ref": "#/components/schemas/UnknownOutcome"
@@ -16026,6 +16119,67 @@
         ],
         "title": "Reply[ShareLink]"
       },
+      "Reply_StickerImportReceipt_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "retcode": {
+            "type": "integer",
+            "title": "Retcode"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StickerImportReceipt"
+              },
+              {
+                "$ref": "#/components/schemas/UnknownOutcome"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "echo": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "wording": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wording"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "retcode"
+        ],
+        "title": "Reply[StickerImportReceipt]"
+      },
       "Reply_StoragePaths_": {
         "properties": {
           "status": {
@@ -16477,7 +16631,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/FavoriteSticker"
+                  "$ref": "#/components/schemas/FavoriteSticker-Output"
                 },
                 "type": "array"
               },
@@ -17509,6 +17663,47 @@
         ],
         "title": "ShareLink"
       },
+      "StickerImportReceipt": {
+        "properties": {
+          "imported_count": {
+            "type": "integer",
+            "title": "Imported Count"
+          },
+          "collection": {
+            "items": {
+              "$ref": "#/components/schemas/FavoriteSticker-Output"
+            },
+            "type": "array",
+            "title": "Collection"
+          },
+          "added": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FavoriteSticker-Output"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Added"
+          },
+          "verified_in_ui": {
+            "type": "boolean",
+            "title": "Verified In Ui",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "imported_count",
+          "collection",
+          "added"
+        ],
+        "title": "StickerImportReceipt"
+      },
       "StoragePaths": {
         "properties": {
           "download_directory": {
@@ -17516,14 +17711,20 @@
             "title": "Download Directory"
           },
           "data_directory": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Data Directory"
           }
         },
         "type": "object",
         "required": [
-          "download_directory",
-          "data_directory"
+          "download_directory"
         ],
         "title": "StoragePaths"
       },

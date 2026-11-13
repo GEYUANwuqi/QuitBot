@@ -9,11 +9,11 @@ from quitbot_backend._engine.errors import (
     MutationOutcomeUnknown,
     TargetMismatch,
 )
-from quitbot_backend._engine.infrastructure.uia.message_mutations import (
+from quitbot_backend._engine.models import Message, Node, Target
+from quitbot_backend._engine.ui.workflows.message_mutations import (
     MessageMutationsUI,
     essence_state,
 )
-from quitbot_backend._engine.models import Message, Node, Target
 
 
 def test_essence_state_requires_one_enabled_unambiguous_state():
@@ -190,7 +190,7 @@ def test_recall_requires_same_ui_row_and_own_recall_wording(
         return value
 
     monkeypatch.setattr(
-        "quitbot_backend._engine.infrastructure.uia.message_mutations.wait_until", wait_once
+        "quitbot_backend._engine.ui.workflows.message_mutations.wait_until", wait_once
     )
     if success:
         assert p.recall("12345", "original").notice_text == text

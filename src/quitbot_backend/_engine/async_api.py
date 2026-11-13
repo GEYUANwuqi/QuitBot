@@ -1,9 +1,8 @@
-"""Async scheduling over one dedicated COM/UIA thread per QQ instance."""
+"""Async scheduling over one dedicated desktop worker per QQ instance."""
 
 from __future__ import annotations
 
 import asyncio
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -46,12 +45,9 @@ class AsyncQQInstance:
         return self
 
     def _create(self, account, hwnd, targets):
-        self._com = None
-        if self._initialize_com and sys.platform == "win32":
-            import uiautomation as auto
+        from .platforms import initialize_thread
 
-            auto.InitializeUIAutomationInCurrentThread()
-            self._com = auto
+        self._com = initialize_thread(self._initialize_com)
         kwargs = {"hwnd": hwnd}
         if targets is not None:
             kwargs["targets"] = targets
@@ -322,13 +318,10 @@ class AsyncQQInstance:
                 self._instance.close()
                 self._instance = None
         finally:
-            if getattr(self, "_com", None) is not None:
-                self._com.UninitializeUIAutomationInCurrentThread()
-                self._com = None
-            if sys.platform == "linux":
-                from .native import close_automation
+            from .platforms import close_automation
 
-                close_automation()
+            close_automation(getattr(self, "_com", None))
+            self._com = None
 
     async def close(self):
         if self._closed:

@@ -1,10 +1,33 @@
+from datetime import date
 from types import SimpleNamespace
 
 import pytest
 
 from quitbot_backend._engine.errors import ControlUnavailable
-from quitbot_backend._engine.infrastructure.uia.history import HistoryUI
 from quitbot_backend._engine.models import Node, Target, parse_history
+from quitbot_backend._engine.ui.workflows.history import HistoryUI
+
+
+@pytest.mark.parametrize("label", ["2024年1月2日星期二", "Tuesday, January 2, 2024"])
+def test_date_filter_uses_calendar_identity_across_locales(label):
+    day = Control(cls="vc-day id-2024-01-02")
+    button = Control(name=label, cls="vc-day-content", role="ButtonControl")
+    day.children = [button]
+    calendar = Control(children=[day])
+    title = Node(name="2024-01", type="TextControl")
+    controls = {"qq-calendar": calendar, "vc-title": title,
+                "record-filter-btn": object(), "date-picker": object()}
+    calls = []
+    b = SimpleNamespace(
+        invoke=calls.append, snapshot=lambda x: x,
+        find=lambda _, predicate: next(x for x in [day, button] if predicate(x)),
+        walk=lambda node: [node, *node.children],
+    )
+    ui = SimpleNamespace(by_class=lambda name, *_, **__: controls[name])
+    HistoryUI(SimpleNamespace(backend=b, control_ui=ui))._filters(
+        object(), None, date(2024, 1, 2)
+    )
+    assert calls[-1] is button
 
 
 def file_row(name="report.txt", metadata=None):
@@ -80,7 +103,7 @@ class Control:
 @pytest.fixture(autouse=True)
 def native_guards(monkeypatch):
     monkeypatch.setattr(
-        "quitbot_backend._engine.infrastructure.uia.history.require_unlocked", lambda _: None
+        "quitbot_backend._engine.ui.workflows.history.require_unlocked", lambda _: None
     )
 
     def wait_once(read, predicate=bool, **_):
@@ -89,7 +112,7 @@ def native_guards(monkeypatch):
             raise ControlUnavailable("Postcondition did not match")
         return result
 
-    monkeypatch.setattr("quitbot_backend._engine.infrastructure.uia.history.wait_until", wait_once)
+    monkeypatch.setattr("quitbot_backend._engine.ui.workflows.history.wait_until", wait_once)
 
 
 def provider(

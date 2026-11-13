@@ -421,7 +421,7 @@ CAPABILITIES = (
     Capability(
         "async",
         True,
-        "One COM worker per instance; serialized UI transactions",
+        "One desktop worker per instance; serialized UI transactions",
         category="runtime",
     ),
     Capability(

@@ -7,6 +7,14 @@ from dataclasses import dataclass
 class FavoriteSticker:
     account: str
     hwnd: int
-    runtime_id: tuple[int, ...]
+    runtime_id: tuple[int | str, ...]
     name: str
     index: int
+
+
+@dataclass(frozen=True)
+class StickerImportReceipt:
+    imported_count: int
+    collection: tuple[FavoriteSticker, ...]
+    added: tuple[FavoriteSticker, ...] | None
+    verified_in_ui: bool = True

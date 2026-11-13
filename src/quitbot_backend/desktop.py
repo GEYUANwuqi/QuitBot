@@ -84,6 +84,7 @@ def session(args):
                     raise TimeoutError("Xvfb did not become ready")
                 time.sleep(0.1)
             start([args.window_manager])
+            start(["stalonetray", "--geometry", "1x1+0+0", "--icon-size", "32"])
             enable_accessibility()
             start([args.qq, "--force-renderer-accessibility"])
             start([sys.executable, "-m", "quitbot_backend"])
@@ -127,6 +128,7 @@ def main():
         "xdpyinfo",
         "xdotool",
         "xclip",
+        "stalonetray",
         args.window_manager,
         args.qq,
     ):

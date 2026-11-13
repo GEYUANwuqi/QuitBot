@@ -9,11 +9,49 @@ from quitbot_backend._engine.errors import (
     MutationOutcomeUnknown,
     TargetMismatch,
 )
-from quitbot_backend._engine.infrastructure.uia.moderation import (
+from quitbot_backend._engine.models import Node, Target
+from quitbot_backend._engine.ui.workflows.moderation import (
     ModerationUI,
     ban_state,
 )
-from quitbot_backend._engine.models import Target
+
+
+@pytest.mark.parametrize("role", ["CheckBoxControl", "MenuItemControl"])
+def test_custom_mute_handles_both_native_choice_roles(monkeypatch, role):
+    selectors = [SimpleNamespace(Name=f"已选中 {v}", ControlTypeName="ButtonControl",
+                 ClassName="q-pulldown-menu-button") for v in (2, 0, 0)]
+    state = {"dialog": object(), "selector": None}
+    dialog, menu = state["dialog"], object()
+    for selector in selectors:
+        selector.GetExpandCollapsePattern = lambda selector=selector: SimpleNamespace(
+            Expand=lambda **_: state.update(selector=selector))
+    labels = [SimpleNamespace(Name=n, ControlTypeName="TextControl")
+              for n in ("天", "时", "分钟")]
+    choices = [SimpleNamespace(Name=str(v), ControlTypeName=role,
+               IsEnabled=True, IsOffscreen=False) for v in range(3)]
+    button = SimpleNamespace(IsEnabled=True)
+
+    def invoke(control):
+        if control is button:
+            state["dialog"] = None
+        else:
+            state["selector"].Name = "已选中 " + control.Name
+
+    for choice in choices:
+        choice.GetTogglePattern = lambda choice=choice: SimpleNamespace(
+            Toggle=lambda **_: invoke(choice))
+    ui = SimpleNamespace(
+        by_class=lambda name, *_, **__: (
+            state["dialog"] if name == "group-message-forbidden-dialog" else
+            Node(type="TextControl", name="peer") if name == "name" else menu),
+        _dismiss_menu=lambda: None,
+    )
+    b = SimpleNamespace(walk=lambda root: selectors + labels if root is dialog else choices,
+                        snapshot=lambda x: x, invoke=invoke, find=lambda *_: button)
+    submitted = [False]
+    ModerationUI(SimpleNamespace(control_ui=ui, backend=b))._custom_ban("peer", 60, submitted)
+    assert submitted == [True] and state["dialog"] is None
+    assert [s.Name for s in selectors] == ["已选中 0", "已选中 0", "已选中 1"]
 
 
 @pytest.mark.parametrize("duration", [True, 30, 600.0, 30 * 86400])

@@ -5,7 +5,7 @@ import pytest
 from quitbot_backend._engine.discovery import QQWindow, profile_qq_id, select_window
 from quitbot_backend._engine.errors import ControlUnavailable, TargetMismatch
 from quitbot_backend._engine.models import Target
-from quitbot_backend._engine.uia import DetachedWindow, UIABackend
+from quitbot_backend._engine.ui.backend import DesktopBackend, DetachedWindow
 
 
 def test_profile_identity_requires_qq_label_not_arbitrary_digits():
@@ -112,7 +112,7 @@ def test_avatar_waits_for_rendering_after_one_focus(monkeypatch):
 
 
 def test_closed_detached_window_is_not_replaced_by_same_name():
-    backend = UIABackend.__new__(UIABackend)
+    backend = DesktopBackend.__new__(DesktopBackend)
     backend._detached = {"1": DetachedWindow("1", "测试群", 100, 10)}
     backend.chat_windows = lambda target: [SimpleNamespace(NativeWindowHandle=200)]
     with pytest.raises(ControlUnavailable):
@@ -120,7 +120,7 @@ def test_closed_detached_window_is_not_replaced_by_same_name():
 
 
 def test_ambiguous_detached_window_is_not_selected():
-    backend = UIABackend.__new__(UIABackend)
+    backend = DesktopBackend.__new__(DesktopBackend)
     backend.chat_windows = lambda target: [object(), object()]
     with pytest.raises(TargetMismatch):
         backend.activate_detached(Target("1", "测试群"))

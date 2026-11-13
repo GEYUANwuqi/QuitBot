@@ -13,10 +13,11 @@ from ._engine.async_api import AsyncQQInstance
 from ._engine.core.source import ActivitySource, MessageSource
 from ._engine.domain.group_files import GroupFileEntry
 from ._engine.domain.onebot import Unsupported
+from ._engine.domain.stickers import FavoriteSticker
 from ._engine.errors import MutationOutcomeUnknown, QuitBotError, SendOutcomeUnknown
 from ._engine.infrastructure.storage.message_index import MessageIndex
 from ._engine.models import Target
-from ._engine.native import TRANSPORT_NAME
+from ._engine.platforms import TRANSPORT_NAME
 from .config import AccountConfig
 from .contracts import ACTIONS, ReverseWSStatus, RuntimeStatus, validate_result
 
@@ -369,14 +370,25 @@ class AccountRuntime:
             return await scope.favorite_stickers()
         if name == "x_import_stickers":
             return await scope.import_stickers(p["paths"])
+        if name in {
+            "x_move_sticker_first",
+            "x_get_sticker_remark",
+            "x_set_sticker_remark",
+            "x_delete_sticker",
+        }:
+            selector = p["selector"]
+            if isinstance(selector, dict):
+                selector = FavoriteSticker(
+                    **{**selector, "runtime_id": tuple(selector["runtime_id"])}
+                )
         if name == "x_move_sticker_first":
-            return await scope.move_sticker_first(p["selector"])
+            return await scope.move_sticker_first(selector)
         if name == "x_get_sticker_remark":
-            return await scope.sticker_remark(p["selector"])
+            return await scope.sticker_remark(selector)
         if name == "x_set_sticker_remark":
-            return await scope.set_sticker_remark(p["selector"], p["value"])
+            return await scope.set_sticker_remark(selector, p["value"])
         if name == "x_delete_sticker":
-            return await scope.delete_sticker(p["selector"])
+            return await scope.delete_sticker(selector)
         if name == "x_get_history_calendar":
             return await scope.history_calendar(p["year"], p["month"])
         if name == "x_locate_history_image":

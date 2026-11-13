@@ -20,14 +20,14 @@ from .models import (
     message_ready,
     parse_messages,
 )
-from .uia import UIABackend, wait_until
+from .ui.backend import DesktopBackend, wait_until
 
 
 class QQClient:
     @property
     def control_ui(self):
         if not hasattr(self, "_control_ui"):
-            from .infrastructure.uia.chat import ChatUI
+            from .ui.workflows.chat import ChatUI
 
             self._control_ui = ChatUI(self)
         return self._control_ui
@@ -41,7 +41,7 @@ class QQClient:
     ):
         self.targets = tuple(targets)
         with ui_transaction():
-            self.backend = UIABackend(account, hwnd)
+            self.backend = DesktopBackend(account, hwnd)
         self._verified = set()
 
     def target(self, key: str | Target) -> Target:
@@ -455,7 +455,7 @@ class QQClient:
         History UI lacks stable message IDs. A files-only row may not expose
         message direction; its direction is then ``unknown``.
         """
-        from .infrastructure.uia.history import HistoryUI
+        from .ui.workflows.history import HistoryUI
 
         filters = {
             k: v for k, v in (("sender", sender), ("on_date", on_date)) if v is not None

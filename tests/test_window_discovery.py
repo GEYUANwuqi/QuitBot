@@ -63,8 +63,9 @@ def test_discovery_coalesces_refresh_and_finishes_after_caller_cancellation(tmp_
 def test_profile_read_targets_one_process_and_releases_com_on_failure(monkeypatch):
     from quitbot_backend import discovery
     from quitbot_backend._engine import discovery as native
-    from quitbot_backend._engine import locking, uia
-    from quitbot_backend._engine.infrastructure.uia import inspection
+    from quitbot_backend._engine import locking
+    from quitbot_backend._engine.ui import backend as uia
+    from quitbot_backend._engine.ui.workflows import inspection
 
     calls = []
     windows = [
@@ -100,7 +101,7 @@ def test_profile_read_targets_one_process_and_releases_com_on_failure(monkeypatc
         return [native.QQWindow(hwnd, hwnd + 100, "same-name")]
 
     monkeypatch.setattr(native, "discover_windows", discover)
-    monkeypatch.setattr(uia, "UIABackend", lambda nickname, hwnd: hwnd)
+    monkeypatch.setattr(uia, "DesktopBackend", lambda nickname, hwnd: hwnd)
 
     def identify(hwnd):
         calls.append(hwnd)
@@ -144,13 +145,14 @@ def test_profile_read_targets_one_process_and_releases_com_on_failure(monkeypatc
 
 def test_process_scan_filters_session_and_executable_without_uia(monkeypatch):
     from quitbot_backend import discovery
+    from quitbot_backend._engine.platforms.windows import discovery as windows
 
     # Win32 functions only: loading UIA during enumeration would fail this scan.
     monkeypatch.setattr(discovery.sys, "platform", "win32")
     monkeypatch.setitem(sys.modules, "uiautomation", None)
-    monkeypatch.setattr(discovery, "windows_session_id", lambda: 7)
+    monkeypatch.setattr(windows, "windows_session_id", lambda: 7)
     monkeypatch.setattr(
-        discovery.ctypes, "WINFUNCTYPE", discovery.ctypes.CFUNCTYPE, raising=False
+        windows.ctypes, "WINFUNCTYPE", windows.ctypes.CFUNCTYPE, raising=False
     )
     closed = []
 
@@ -196,7 +198,7 @@ def test_process_scan_filters_session_and_executable_without_uia(monkeypatch):
         ProcessIdToSessionId=session_id,
     )
     monkeypatch.setattr(
-        discovery.ctypes,
+        windows.ctypes,
         "WinDLL",
         lambda name, **_: user if name == "user32" else kernel,
         raising=False,

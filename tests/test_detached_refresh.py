@@ -13,13 +13,13 @@ from quitbot_backend._engine.client import QQClient
 from quitbot_backend._engine.errors import ControlUnavailable, TargetMismatch
 from quitbot_backend._engine.instance import QQInstance
 from quitbot_backend._engine.models import Message, Target
-from quitbot_backend._engine.uia import DetachedWindow, UIABackend
+from quitbot_backend._engine.ui.backend import DesktopBackend, DetachedWindow
 
 TARGET = Target("12345", "测试群")
 
 
 def refresh_backend(monkeypatch):
-    from quitbot_backend._engine.infrastructure.uia import inspection
+    from quitbot_backend._engine.ui.workflows import inspection
 
     calls = []
     state = {"foreground": None, "header": TARGET.name, "activate": True}
@@ -31,7 +31,7 @@ def refresh_backend(monkeypatch):
             state["foreground"] = window
 
     window.SetActive = activate
-    backend = UIABackend.__new__(UIABackend)
+    backend = DesktopBackend.__new__(DesktopBackend)
     backend.main_window = SimpleNamespace(ProcessId=10)
     backend.window = window
     backend._detached = {TARGET.id: DetachedWindow(TARGET.id, TARGET.name, 100, 10)}
@@ -47,7 +47,7 @@ def refresh_backend(monkeypatch):
         if not read():
             raise ControlUnavailable("Foreground did not match")
 
-    monkeypatch.setattr("quitbot_backend._engine.uia.wait_until", wait)
+    monkeypatch.setattr("quitbot_backend._engine.ui.backend.wait_until", wait)
     return backend, calls, state
 
 
@@ -83,7 +83,7 @@ def test_refresh_never_replays_failed_activation(monkeypatch):
 
 
 def test_ambiguous_detached_error_preserves_guard_and_identifies_matching_windows():
-    backend = UIABackend.__new__(UIABackend)
+    backend = DesktopBackend.__new__(DesktopBackend)
     backend._detached = {}
     backend.chat_windows = lambda _: [
         SimpleNamespace(NativeWindowHandle=100, ProcessId=10, Name="测试群"),
@@ -95,7 +95,7 @@ def test_ambiguous_detached_error_preserves_guard_and_identifies_matching_window
 
 
 def test_refresh_checks_locked_desktop_before_activation(monkeypatch):
-    from quitbot_backend._engine.infrastructure.uia import inspection
+    from quitbot_backend._engine.ui.workflows import inspection
 
     backend, calls, _ = refresh_backend(monkeypatch)
 

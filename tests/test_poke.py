@@ -12,10 +12,33 @@ from quitbot_backend._engine.errors import (
     MutationOutcomeUnknown,
     TargetMismatch,
 )
-from quitbot_backend._engine.infrastructure.uia.member_interactions import (
+from quitbot_backend._engine.models import Message, Target
+from quitbot_backend._engine.ui.workflows.member_interactions import (
     MemberInteractionsUI,
 )
-from quitbot_backend._engine.models import Message, Target
+
+
+@pytest.mark.parametrize("sender", ["peer", "unexpected"])
+def test_unnamed_avatar_requires_a_parsed_incoming_peer_message(monkeypatch, sender):
+    avatar = SimpleNamespace(Name="", IsOffscreen=False, IsEnabled=True)
+    row = SimpleNamespace(AutomationId="incoming", ClassName="ml-item")
+    target = Target("23456", "peer", "private")
+    ui = SimpleNamespace(
+        checked=lambda _: nullcontext(target),
+        by_class=lambda _, root=None, **__: avatar if root is row else None,
+    )
+    b = SimpleNamespace(window=object(), walk=lambda _: [row], find=lambda *_: row)
+    client = SimpleNamespace(control_ui=ui, backend=b, _read=lambda _: [
+        Message("incoming", target.id, sender, "test", "incoming")])
+
+    def reached(control):
+        assert control is avatar
+        raise ControlUnavailable("Verified peer avatar selected")
+
+    monkeypatch.setattr("quitbot_backend._engine.platforms.show_context_menu", reached)
+    expected = "Verified peer avatar selected" if sender == "peer" else "No loaded incoming avatar"
+    with pytest.raises(ControlUnavailable, match=expected):
+        MemberInteractionsUI(client).poke_friend(target)
 
 
 @pytest.mark.parametrize("text,sender,recipient", [
@@ -107,7 +130,7 @@ def test_normal_text_or_unknown_custom_poke_does_not_become_a_notice():
 
 
 def poke_provider(monkeypatch, *, number="23456", received=True, existing=False):
-    module = "quitbot_backend._engine.infrastructure.uia.member_interactions"
+    module = "quitbot_backend._engine.ui.workflows.member_interactions"
     monkeypatch.setattr(module + ".require_unlocked", lambda _: None)
 
     def once(read, predicate=bool, **_):

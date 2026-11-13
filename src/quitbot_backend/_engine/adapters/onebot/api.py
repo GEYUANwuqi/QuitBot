@@ -32,8 +32,8 @@ from quitbot_backend._engine.errors import (
     SendOutcomeUnknown,
 )
 from quitbot_backend._engine.infrastructure.storage.message_index import MessageIndex
-from quitbot_backend._engine.native import TRANSPORT_NAME
 from quitbot_backend._engine.operations import validate_text
+from quitbot_backend._engine.platforms import TRANSPORT_NAME
 
 SECONDARY_ACTIONS = (
     "x_get_group_applications",

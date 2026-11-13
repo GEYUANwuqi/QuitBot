@@ -110,13 +110,13 @@ class QQInstance:
 
     def notifications(self, kind="group"):
         """Read loaded native notification cards; UI keys are local, not server IDs."""
-        from .infrastructure.uia.notifications import NotificationUI
+        from .ui.workflows.notifications import NotificationUI
 
         self._assert_open()
         return NotificationUI(self._client).read(kind)
 
     def respond_request(self, kind, ui_key, *, approve):
-        from .infrastructure.uia.notifications import NotificationUI
+        from .ui.workflows.notifications import NotificationUI
 
         self._assert_open()
         return NotificationUI(self._client).respond(kind, ui_key, approve)
@@ -150,13 +150,13 @@ class QQInstance:
         return self._client.search(query, limit=limit)
 
     def discover_conversations(self):
-        from .infrastructure.uia.recent import RecentConversations
+        from .ui.workflows.recent import RecentConversations
 
         self._assert_open()
         return RecentConversations(self._client.backend).discover()
 
     def resolve_conversation(self, name):
-        from .infrastructure.uia.recent import RecentConversations
+        from .ui.workflows.recent import RecentConversations
 
         self._assert_open()
         return RecentConversations(self._client.backend).resolve(name)
@@ -323,27 +323,27 @@ class Conversation:
 
     def history_calendar(self, year, month):
         """Read enabled date controls after native year/month navigation."""
-        from .infrastructure.uia.history import HistoryUI
+        from .ui.workflows.history import HistoryUI
 
         return HistoryUI(self._client()).calendar(self.target, year, month)
 
     def locate_history_image(self, on_date, *, expected_message_id):
         """Locate a unique private-history image and verify its known UI key."""
-        from .infrastructure.uia.history import HistoryUI
+        from .ui.workflows.history import HistoryUI
 
         return HistoryUI(self._client()).locate_image(
             self.target, on_date, expected_message_id=expected_message_id
         )
 
     def favorite_stickers(self):
-        from .infrastructure.uia.stickers import StickersUI
+        from .ui.workflows.stickers import StickersUI
 
         return StickersUI(self._client()).list(self.target)
 
     @contextmanager
     def sticker_collection(self):
         """Keep one collection panel and UI transaction alive for unnamed items."""
-        from .infrastructure.uia.stickers import StickersUI
+        from .ui.workflows.stickers import StickersUI
 
         ui = StickersUI(self._client())
         with ui.panel(self.target):
@@ -354,28 +354,28 @@ class Conversation:
                 collection._active = False
 
     def import_stickers(self, paths):
-        """Import local PNGs/GIFs; returned order is QQ order, not input file order."""
-        from .infrastructure.uia.stickers import StickersUI
+        """Confirm the import count and return the current collection and identities."""
+        from .ui.workflows.stickers import StickersUI
 
         return StickersUI(self._client()).import_images(self.target, paths)
 
     def move_sticker_first(self, selector):
-        from .infrastructure.uia.stickers import StickersUI
+        from .ui.workflows.stickers import StickersUI
 
         return StickersUI(self._client()).move_first(self.target, selector)
 
     def sticker_remark(self, selector):
-        from .infrastructure.uia.stickers import StickersUI
+        from .ui.workflows.stickers import StickersUI
 
         return StickersUI(self._client()).remark(self.target, selector)
 
     def set_sticker_remark(self, selector, value):
-        from .infrastructure.uia.stickers import StickersUI
+        from .ui.workflows.stickers import StickersUI
 
         return StickersUI(self._client()).remark(self.target, selector, value)
 
     def delete_sticker(self, selector):
-        from .infrastructure.uia.stickers import StickersUI
+        from .ui.workflows.stickers import StickersUI
 
         return StickersUI(self._client()).delete(self.target, selector)
 
@@ -483,38 +483,38 @@ class Conversation:
 
 class Group(Conversation):
     def delete_files(self, names, *, expected=None):
-        from .infrastructure.uia.group_files import GroupFilesUI
+        from .ui.workflows.group_files import GroupFilesUI
 
         return GroupFilesUI(self._client()).delete_files(self.target, names, expected=expected)
 
     def folder_properties(self, name, *, expected=None):
-        from .infrastructure.uia.group_files import GroupFilesUI
+        from .ui.workflows.group_files import GroupFilesUI
 
         return GroupFilesUI(self._client()).folder_properties(
             self.target, name, expected=expected
         )
 
     def download_files(self, names, destination, *, expected=None):
-        from .infrastructure.uia.group_files import GroupFilesUI
+        from .ui.workflows.group_files import GroupFilesUI
 
         return GroupFilesUI(self._client()).download_files(
             self.target, names, destination, expected=expected
         )
 
     def download_folder(self, name, download_root, *, expected=None):
-        from .infrastructure.uia.group_files import GroupFilesUI
+        from .ui.workflows.group_files import GroupFilesUI
 
         return GroupFilesUI(self._client()).download_folder(
             self.target, name, download_root, expected=expected
         )
 
     def save_qr(self, destination):
-        from .infrastructure.uia.sharing import SharingUI
+        from .ui.workflows.sharing import SharingUI
 
         return SharingUI(self._client()).save_qr(self.target, destination)
 
     def share_qr_to(self, destination):
-        from .infrastructure.uia.sharing import SharingUI
+        from .ui.workflows.sharing import SharingUI
 
         scope = self.instance.conversation(destination)
         return SharingUI(self._client()).share(self.target, scope.target, kind="qr")
@@ -539,13 +539,13 @@ class Group(Conversation):
         return self._client().control_ui.set_group_description(self.target, value)
 
     def publish_notice(self, text, *, image=None):
-        from .infrastructure.uia.notices import NoticesUI
+        from .ui.workflows.notices import NoticesUI
 
         return NoticesUI(self._client()).publish(self.target, text, image=image)
 
     def edit_notice(self, text, new_text, *, image=None, remove_image=False, expected=None):
         """Edit text, preserving the image unless replaced or explicitly removed."""
-        from .infrastructure.uia.notices import NoticesUI
+        from .ui.workflows.notices import NoticesUI
 
         return NoticesUI(self._client()).edit(
             self.target,
@@ -557,17 +557,17 @@ class Group(Conversation):
         )
 
     def delete_notice(self, text, *, expected=None):
-        from .infrastructure.uia.notices import NoticesUI
+        from .ui.workflows.notices import NoticesUI
 
         return NoticesUI(self._client()).delete(self.target, text, expected=expected)
 
     def notice_pinned(self, text, *, expected=None):
-        from .infrastructure.uia.notices import NoticesUI
+        from .ui.workflows.notices import NoticesUI
 
         return NoticesUI(self._client()).pinned(self.target, text, expected=expected)
 
     def set_notice_pinned(self, text, enabled, *, expected=None):
-        from .infrastructure.uia.notices import NoticesUI
+        from .ui.workflows.notices import NoticesUI
 
         return NoticesUI(self._client()).set_pinned(self.target, text, enabled, expected=expected)
 
@@ -744,18 +744,18 @@ class Group(Conversation):
 
 class Friend(Conversation):
     def profile(self, *, full=False):
-        from .infrastructure.uia.sharing import SharingUI
+        from .ui.workflows.sharing import SharingUI
 
         return SharingUI(self._client()).profile(self.target, full=full)
 
     def like(self):
         """Submit one profile like, then read and reopen its visible count."""
-        from .infrastructure.uia.sharing import SharingUI
+        from .ui.workflows.sharing import SharingUI
 
         return SharingUI(self._client()).like(self.target)
 
     def share_to(self, destination):
-        from .infrastructure.uia.sharing import SharingUI
+        from .ui.workflows.sharing import SharingUI
 
         scope = self.instance.conversation(destination)
         return SharingUI(self._client()).share(
@@ -869,7 +869,7 @@ class MessageHandle:
         )
 
     def contact_profile(self, *, expected_user_id):
-        from .infrastructure.uia.sharing import SharingUI
+        from .ui.workflows.sharing import SharingUI
 
         return SharingUI(self.conversation._client()).contact_profile(
             self.conversation.target, self.id, expected_user_id=expected_user_id

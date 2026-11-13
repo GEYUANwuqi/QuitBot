@@ -48,7 +48,7 @@ uv run --locked --no-dev python -m quitbot_backend
 uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /opt/QQ/qq
 ```
 
-该入口创建独立 D-Bus、带认证的 Xvfb 和 Openbox，在启动 QQ 前启用辅助技术，并同时运行后端。登录 QQ 时可按需连接桌面查看工具；关闭查看连接后图形会话继续运行。终端输出 `DISPLAY` 和 `XAUTHORITY`，供查看工具使用。长期运行时将此入口交给 systemd 管理；启动目录和 `QUITBOT_CONFIG` 决定配置位置。每个隔离用户 / 图形会话运行一个后端实例，使用不同显示编号和管理端口。查看工具应绑定回环地址并通过 SSH 转发访问。
+该入口创建独立 D-Bus、带认证的 Xvfb、Openbox 和系统托盘，在启动 QQ 前启用辅助技术，并同时运行后端。登录 QQ 时可按需连接桌面查看工具；关闭查看连接后图形会话继续运行。终端输出 `DISPLAY` 和 `XAUTHORITY`，供查看工具使用。长期运行时将此入口交给 systemd 管理；启动目录和 `QUITBOT_CONFIG` 决定配置位置。每个隔离用户 / 图形会话运行一个后端实例，使用不同显示编号和管理端口。查看工具应绑定回环地址并通过 SSH 转发访问。
 
 已有 X11 桌面可直接运行后端；QQ 与后端需共享 `DISPLAY`、`XAUTHORITY` 和 `DBUS_SESSION_BUS_ADDRESS`。QQ 启动前启用 `org.a11y.Status` 的 `IsEnabled`、`ScreenReaderEnabled`，并使用 `--force-renderer-accessibility`。Linux 文本输入通过剪贴板和 XTEST 完成，会更新该图形会话的剪贴板。
 

@@ -8,9 +8,9 @@ class GroupJoinPolicy:
     group_id: str
     join_mode: str
     verification: str | None
-    member_invites: bool
+    member_invites: bool | None
     invite_approval: str | None
-    bot_invites: bool
+    bot_invites: bool | None
     bot_invite_approval: str | None
 
 

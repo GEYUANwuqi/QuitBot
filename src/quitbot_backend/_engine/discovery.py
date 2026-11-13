@@ -5,14 +5,14 @@ import re
 from dataclasses import dataclass
 
 from .errors import ControlUnavailable
-from .infrastructure.uia.inspection import (
+from .locking import ui_transaction
+from .ui.backend import DesktopBackend, navigation_label_matches, wait_until
+from .ui.workflows.inspection import (
     DesktopLocked,
     DesktopUnavailable,
     require_unlocked,
 )
-from .infrastructure.uia.profile_cards import ProfileCards
-from .locking import ui_transaction
-from .uia import UIABackend, navigation_label_matches, wait_until
+from .ui.workflows.profile_cards import ProfileCards
 
 
 @dataclass(frozen=True)
@@ -144,7 +144,7 @@ def read_self_avatar(backend):
 
 def discover_windows(*, resolve_ids=False, hwnd=None):
     """ID resolution opens each account's own profile and changes focus."""
-    from .native import automation
+    from .platforms import automation
 
     auto = automation()
 
@@ -155,7 +155,7 @@ def discover_windows(*, resolve_ids=False, hwnd=None):
                 continue
             if window.Name != "QQ" or window.ClassName != "Chrome_WidgetWin_1":
                 continue
-            b = UIABackend.__new__(UIABackend)
+            b = DesktopBackend.__new__(DesktopBackend)
             b.auto = auto
             avatar = b.find(
                 window,
@@ -170,7 +170,7 @@ def discover_windows(*, resolve_ids=False, hwnd=None):
             nickname = avatar.Name.removesuffix("的头像")
             number = None
             if resolve_ids:
-                bound = UIABackend(nickname, window.NativeWindowHandle)
+                bound = DesktopBackend(nickname, window.NativeWindowHandle)
                 number = read_self_id(bound)
             result.append(
                 QQWindow(window.NativeWindowHandle, window.ProcessId, nickname, number)

@@ -12,14 +12,14 @@ from quitbot_backend._engine.errors import (
     MutationOutcomeUnknown,
     TargetMismatch,
 )
-from quitbot_backend._engine.infrastructure.uia.group_files import (
+from quitbot_backend._engine.models import Node
+from quitbot_backend._engine.ui.workflows.group_files import (
     GroupFilesUI,
     downloaded_file_state,
     parse_file_entry,
     require_loaded_root,
     unique_file_entry,
 )
-from quitbot_backend._engine.models import Node
 
 
 def text(value):
@@ -60,7 +60,8 @@ def test_duplicate_or_changed_file_identity_is_rejected_before_mutation():
     assert unique_file_entry([old], "one.txt", expected=old) == old
 
 
-def test_file_rows_reacquired_after_transient_tree_rebuild_and_empty_is_valid():
+@pytest.mark.parametrize("defunct", [False, True])
+def test_file_rows_reacquired_after_transient_tree_rebuild_and_empty_is_valid(defunct):
     ui = GroupFilesUI.__new__(GroupFilesUI)
     old, fresh = object(), object()
     calls = []
@@ -74,6 +75,8 @@ def test_file_rows_reacquired_after_transient_tree_rebuild_and_empty_is_valid():
 
     def snapshot(control):
         if control is old:
+            if defunct:
+                return Node()
             raise Stale()
         return row("one.txt", "47.0 B")
 
@@ -163,7 +166,7 @@ def test_root_header_guard_rejects_unknown_breadcrumbs_or_multiple_headers():
 def test_root_read_does_not_require_management_buttons_for_ordinary_member(monkeypatch):
     seen = []
     monkeypatch.setattr(
-        "quitbot_backend._engine.infrastructure.uia.group_files.require_loaded_root",
+        "quitbot_backend._engine.ui.workflows.group_files.require_loaded_root",
         lambda node, name: seen.append(name),
     )
     ui = GroupFilesUI.__new__(GroupFilesUI)
@@ -416,7 +419,7 @@ def test_delete_dialog_title_class_differs_from_rename_but_exact_body_is_require
 
 def upload_fixture(*, retain_path=True, read_error=None):
     ui, state = create_fixture()
-    picker = SimpleNamespace(Name="请选择")
+    picker = SimpleNamespace(Name="请选择", NativeWindowHandle=501, ControlTypeName="WindowControl", ClassName="#32770")
     value = SimpleNamespace(Value="")
     value.SetValue = lambda s, **_: setattr(
         value, "Value", s if retain_path else "wrong.txt"
@@ -455,9 +458,11 @@ def upload_fixture(*, retain_path=True, read_error=None):
         return GroupFileEntry(name, "file", "47.0 B")
 
     ui.b.invoke = invoke
-    ui.b.walk = lambda _: controls
+    from quitbot_backend._engine.platforms.windows.file_picker import find_file_picker
+
+    ui.b.walk = lambda root: controls if root is picker else ([picker] if state.get("picker") else [])
     ui.b.find = lambda _, predicate: next(c for c in controls if predicate(c))
-    ui._picker = lambda _: state.get("picker")
+    ui._picker = lambda owner: find_file_picker(ui.b, owner)
     ui._await_entry = await_entry
     return ui, state
 
@@ -524,7 +529,7 @@ def test_native_save_as_verifies_source_then_writes_one_new_local_destination(tm
         ClassName="Button",
         Name="取消",
     )
-    picker = SimpleNamespace(Name="另存为")
+    picker = SimpleNamespace(Name="另存为", NativeWindowHandle=501, ControlTypeName="WindowControl", ClassName="#32770")
     controls = [edit, confirm, cancel]
 
     def invoke(control):
@@ -536,9 +541,11 @@ def test_native_save_as_verifies_source_then_writes_one_new_local_destination(tm
             state["picker"] = picker
 
     ui.b.invoke = invoke
-    ui.b.walk = lambda _: controls
+    from quitbot_backend._engine.platforms.windows.file_picker import find_file_picker
+
+    ui.b.walk = lambda root: controls if root is picker else ([picker] if state.get("picker") else [])
     ui.b.find = lambda _, predicate: next(c for c in controls if predicate(c))
-    ui._picker = lambda _: state.get("picker")
+    ui._picker = lambda owner: find_file_picker(ui.b, owner)
     path = tmp_path / "download.txt"
     receipt = ui.download_file("20001", "one.txt", path)
     assert state["calls"] == ["另存为", "另存为"]

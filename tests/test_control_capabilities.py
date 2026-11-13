@@ -4,7 +4,8 @@ from types import SimpleNamespace
 import pytest
 
 from quitbot_backend._engine.errors import DraftNotEmpty
-from quitbot_backend._engine.infrastructure.uia.chat import (
+from quitbot_backend._engine.models import Node, Target
+from quitbot_backend._engine.ui.workflows.chat import (
     ChatUI,
     action_risk,
     checked_forwarding_labels,
@@ -12,7 +13,6 @@ from quitbot_backend._engine.infrastructure.uia.chat import (
     draft_state,
     forwarding_label,
 )
-from quitbot_backend._engine.models import Node, Target
 
 
 def text(value):

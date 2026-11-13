@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
-from quitbot_backend._engine import native
+from quitbot_backend._engine import platforms as native
 from quitbot_backend._engine.models import Node
 
 

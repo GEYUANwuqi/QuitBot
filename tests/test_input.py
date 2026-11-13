@@ -4,10 +4,15 @@ import pytest
 
 from quitbot_backend._engine.errors import FocusLost
 from quitbot_backend._engine.models import Node, editor_has_content, editor_text
-from quitbot_backend._engine.uia import UIABackend
+from quitbot_backend._engine.ui.backend import DesktopBackend
 
 
 class FakeAutomation:
+    def type_text(self, control, text):
+        from quitbot_backend._engine.platforms.windows.desktop import type_text
+
+        return type_text(self, control, text)
+
     def __init__(self, editor):
         self.focus = editor
         self.units = []
@@ -28,7 +33,7 @@ class FakeAutomation:
 
 
 def backend(editor):
-    instance = UIABackend.__new__(UIABackend)
+    instance = DesktopBackend.__new__(DesktopBackend)
     instance.thread_id = threading.get_ident()
     instance.auto = FakeAutomation(editor)
     return instance
@@ -72,7 +77,7 @@ def test_empty_editor_voice_hint_is_not_a_draft_but_literal_user_text_is_preserv
 
 
 def test_empty_prosemirror_structural_line_break_is_not_reported_as_draft_text():
-    from quitbot_backend._engine.infrastructure.uia.chat import draft_state
+    from quitbot_backend._engine.ui.workflows.chat import draft_state
 
     line = Node(type="TextControl", name="\n", class_name="ProseMirror-trailingBreak")
     editor = Node(

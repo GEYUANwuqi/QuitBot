@@ -21,7 +21,10 @@ from quitbot_backend._engine.domain.group_files import (
     GroupFileEntry,
     GroupFileMutationReceipt,
 )
-from quitbot_backend._engine.domain.stickers import FavoriteSticker
+from quitbot_backend._engine.domain.stickers import (
+    FavoriteSticker,
+    StickerImportReceipt,
+)
 from quitbot_backend._engine.errors import MutationOutcomeUnknown
 from quitbot_backend._engine.models import (
     ConversationCandidate,
@@ -142,7 +145,7 @@ class FakeScope:
                 },
                 "contact_profile": ConversationInfo("30001", "peer", "private"),
                 "favorite_stickers": [STICKER],
-                "import_stickers": [STICKER],
+                "import_stickers": StickerImportReceipt(1, (STICKER,), (STICKER,)),
                 "move_sticker_first": STICKER,
                 "sticker_remark": "remark",
                 "set_sticker_remark": "new",
@@ -323,6 +326,32 @@ def test_all_new_routes_convert_guards_and_return_declared_types(tmp_path):
             json={"target_id": "20001", "message_id": observed["message_id"]},
         ).json()
         assert queried["data"]["id"] == "ui-row"
+
+
+def test_sticker_reference_crosses_http_boundary_with_native_identity(tmp_path):
+    app, _, qq = setup_app(tmp_path)
+    reference = FavoriteSticker("10001", 17, (":1.5", "/accessible/7"), "自定义表情", 3)
+    with TestClient(
+        app, headers={"Authorization": "Bearer " + app.state.test_token}
+    ) as client:
+        client.post("/api/x_connect", json={}).raise_for_status()
+        for action, extra in (
+            ("x_get_sticker_remark", {}),
+            ("x_set_sticker_remark", {"value": "fixture"}),
+            ("x_move_sticker_first", {}),
+            ("x_delete_sticker", {}),
+        ):
+            reply = client.post(
+                "/api/" + action,
+                json={"target_id": "20001", "selector": asdict(reference), **extra},
+            ).json()
+            assert reply["status"] == "ok", reply
+            assert qq.calls[-1][1][0] == reference
+        malformed = client.post(
+            "/api/x_delete_sticker",
+            json={"target_id": "20001", "selector": {"name": "自定义表情"}},
+        )
+        assert malformed.status_code == 422
 
 
 def test_identity_mismatch_and_duplicate_account_ports_are_rejected(tmp_path):

@@ -16,7 +16,7 @@ QuitBot 提供管理服务和账号服务。控制台服务负责登录与配置
 | HTTP `GET /api/config` | 读取配置和应用状态 | Bearer |
 | HTTP `PUT /api/config` | 保存并应用配置 | Bearer |
 | HTTP `GET /api/discovery` | 读取最近一次探查缓存 | Bearer |
-| HTTP `POST /api/discovery/refresh` | 枚举本 Windows 会话的 QQ 进程窗口，仅返回进程元数据 | Bearer |
+| HTTP `POST /api/discovery/refresh` | 枚举本图形会话的 QQ 进程窗口，仅返回进程元数据 | Bearer |
 | HTTP `POST /api/accounts/activate` | 读取所选窗口的账号资料、保存配置并连接；参数为 `hwnd`、`revision` | Bearer |
 | WS `/accounts/{account_id}/ws` | 控制台专用账号动作与事件通道 | 首帧认证或 Bearer |
 | HTTP `GET /health` | 服务标识 | 无 |
@@ -75,7 +75,7 @@ Authorization: Bearer <access_token>
 
 绑定账号后，调用 `x_discover_conversations {}` 读取已加载的最近会话及主窗口当前会话。每项返回 `name`、`selectable` 和 `reason`；可见列表内的同名会话会标为不可选择。此步骤只枚举名称。
 
-对选中的名称调用 `x_resolve_conversation {"name":"会话名称"}`，返回 `{id, name, kind}`。列表未加载对应条目时，通过 UIA 滚动查找，再使用 QQ 的复制号码菜单读取数字身份，会更新当前 Windows 会话的剪贴板；菜单缺失、号码无效或剪贴板变化时返回错误。两个接口均不修改 `targets`。将已核验结果写入账号配置并保存后，该会话才进入操作和监听范围。
+对选中的名称调用 `x_resolve_conversation {"name":"会话名称"}`，返回 `{id, name, kind}`。列表未加载对应条目时，通过原生控件滚动查找，再使用 QQ 的复制号码菜单读取数字身份，会更新当前图形会话的剪贴板；菜单缺失、号码无效或剪贴板变化时返回错误。两个接口均不修改 `targets`。将已核验结果写入账号配置并保存后，该会话才进入操作和监听范围。
 
 监听默认使用独立聊天窗口，每个配置内会话打开一个窗口，已有窗口经过身份核验后复用。`x_start_listener` 返回 `starting` 时，窗口仍在初始化。通过 `x_get_runtime_status` 查询最终状态；失败时会发布 `quitbot.listener_error` 扩展事件，并在 `last_error` 中保留原因。
 
@@ -141,6 +141,14 @@ Authorization: Bearer <access_token>
 
 文件路径均指**后端所在电脑**的路径，包含发送、上传、下载和图片保存。媒体发送范围为本地文件；远程 URL、base64 媒体和服务端文件 ID 尚未适配。
 
+## 收藏表情与平台字段
+
+`x_import_stickers` 返回 `{imported_count, collection, added, verified_in_ui}`：`collection` 是导入后的当前列表；仅在旧条目的标识保持有效、能够确定新增条目时，`added` 返回新增对象，否则为 `null`。调用方应按 `imported_count` 和回执判断结果。
+
+表情操作的 `selector` 支持唯一的非默认备注，或完整 `FavoriteSticker` 对象。对象的 `account`、`hwnd`、`runtime_id` 和名称都参与核验；`index` 仅供展示。Linux QQ 会在关闭收藏面板、导入或删除后重建对象标识，跨请求操作请先在 QQ 中为目标设置唯一备注。失效引用会返回错误，写操作不会按序号重新选择。
+
+`x_get_storage_paths.data_directory` 在客户端未显示数据目录时为 `null`。禁止加群时，QQ 隐藏的 `member_invites`、`bot_invites` 字段也返回 `null`。群文件排序读取当前平台实际提供的选项；Linux QQ 提供按最新、最旧时间排序。
+
 ## 管理动作
 
 管理 WS 在登录或认证通过后提供以下动作：
@@ -158,9 +166,9 @@ Authorization: Bearer <access_token>
 
 `ConfigView` 包含 `config`、`revision`、`applied_revision`、`accounts`、`activated_accounts`、`errors` 和 `webui`。`webui` 返回当前实际 `host / port / url`、是否等待重启的 `restart_required` 和端口是否由环境覆盖的 `port_overridden`。保存时传回读取到的 `revision`，处理结果按[配置应用状态](configuration.md#修改与热更新)判断。
 
-`DiscoveryView` 包含 `state`（`idle / scanning / ready / failed`）、`session_id`、Unix 秒时间 `scanned_at`、`windows` 及整体 `error`。`windows` 的每项为 `DiscoveredProcess`，只包含 `hwnd / pid / process_name`。探查通过 Win32 枚举进程窗口，不读取 QQ 号、昵称或头像。整体失败时返回空列表和具体原因。探查操作需要完整登录权限，首次改密前无法调用。
+`DiscoveryView` 包含 `state`（`idle / scanning / ready / failed`）、`session_id`、Unix 秒时间 `scanned_at`、`windows` 及整体 `error`。`windows` 的每项为 `DiscoveredProcess`，只包含 `hwnd / pid / process_name`。探查通过 Win32 / X11 枚举进程窗口，不读取 QQ 号、昵称或头像。整体失败时返回空列表和具体原因。探查操作需要完整登录权限，首次改密前无法调用。
 
-`x_activate_account` 核对缓存中的窗口与当前进程，只对所选窗口读取账号资料。QQ 号、昵称、头像完整且绑定成功后，`ConfigView.activated_accounts` 返回该账号的 `DiscoveredWindow`：`hwnd / pid / nickname / account_id / avatar / available / error`。`avatar` 为 UIA 头像控件的 PNG data URL，资料只缓存在内存；普通刷新复用缓存，进程窗口消失或变化时移除缓存。资料读取失败时操作返回错误，修复窗口状态后可重新连接。
+`x_activate_account` 核对缓存中的窗口与当前进程，只对所选窗口读取账号资料。QQ 号、昵称、头像完整且绑定成功后，`ConfigView.activated_accounts` 返回该账号的 `DiscoveredWindow`：`hwnd / pid / nickname / account_id / avatar / available / error`。`avatar` 为原生头像控件的 PNG data URL，资料只缓存在内存；普通刷新复用缓存，进程窗口消失或变化时移除缓存。资料读取失败时操作返回错误，修复窗口状态后可重新连接。
 
 账号连接页进入时调用一次刷新，手动刷新仍然可用；后端启动不扫描。`x_activate_account` 仅接受本次进程缓存中的窗口，更新已有账号窗口时保留网络和监听配置。服务重启后需重新连接以建立资料缓存；探查整体失败时清空激活列表，已有配置保留。
 

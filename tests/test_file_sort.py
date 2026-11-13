@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from quitbot_backend._engine.errors import ControlUnavailable
-from quitbot_backend._engine.infrastructure.uia.secondary import (
+from quitbot_backend._engine.ui.workflows.secondary import (
     FILE_SORT_LABELS,
     SecondaryUI,
     file_sort_state,

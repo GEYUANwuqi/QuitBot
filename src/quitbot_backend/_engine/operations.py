@@ -11,7 +11,7 @@ from .errors import (
 )
 from .locking import ui_transaction
 from .models import MediaReceipt, SendReceipt, editor_has_content, editor_text, text_of
-from .uia import wait_until
+from .ui.backend import wait_until
 
 
 def validate_text(text):
@@ -95,9 +95,9 @@ class MessageOperations:
             root = b.find(b.window, lambda x: x.AutomationId == "ml-root")
             item = b.find(root, lambda x: x.AutomationId == original.id)
             if original.kind == "card":
-                from quitbot_backend._engine.native import show_context_menu
+                from quitbot_backend._engine.platforms import show_context_menu
 
-                from .infrastructure.uia.sharing import contact_card_name
+                from .ui.workflows.sharing import contact_card_name
 
                 card_name = contact_card_name(b.snapshot(item))
                 content = b.by_class("ark-msg-content-container", root=item)
@@ -273,72 +273,17 @@ class MessageOperations:
                 # Closing a profile popover can leave the main window inactive.
                 b.focus_control(toolbar_button(), resolve=toolbar_button)
                 b.auto.SendKeys("{Enter}", waitTime=0.1)
-            if hasattr(b.auto, "find_file_picker"):
-                picker = wait_until(lambda: b.auto.find_file_picker(b.window), timeout=30)
-                try:
-                    picker.set_path(path)
-                    picker.confirm()
-                    wait_until(lambda: b.auto.find_file_picker(b.window), lambda value: value is None)
-                except Exception:
-                    if b.auto.find_file_picker(b.window) is not None:
-                        picker.cancel()
-                    raise
-            else:
-                dialog = wait_until(
-                    lambda: b.find(
-                        b.window,
-                        lambda x: (
-                            x.ControlTypeName == "WindowControl" and x.ClassName == "#32770"
-                        ),
-                        required=False,
-                    ),
-                    timeout=30,
-                )
-                dialog_handle = dialog.NativeWindowHandle
-                try:
-                    edit = b.find(
-                        dialog,
-                        lambda x: (
-                            x.ControlTypeName == "EditControl" and x.AutomationId == "1148"
-                        ),
-                    )
-                    value = edit.GetValuePattern()
-                    value.SetValue(str(path), waitTime=0.05)
-                    if value.Value != str(path):
-                        raise TargetMismatch("File picker path verification failed")
-                    b.invoke(
-                        b.find(
-                            dialog,
-                            lambda x: (
-                                x.ControlTypeName == "ButtonControl"
-                                and x.AutomationId == "1"
-                                and x.ClassName == "Button"
-                            ),
-                        )
-                    )
-                    wait_until(
-                        lambda: b.find(
-                            b.window,
-                            lambda x: (
-                                x.ControlTypeName == "WindowControl"
-                                and x.ClassName == "#32770"
-                            ),
-                            required=False,
-                        ),
-                        lambda x: x is None,
-                    )
-                except Exception:
-                    # Close only the picker opened by this operation, not an existing one.
-                    if (
-                        b.find(
-                            b.window,
-                            lambda x: x.NativeWindowHandle == dialog_handle,
-                            required=False,
-                        )
-                        is not None
-                    ):
-                        dialog.GetWindowPattern().Close(waitTime=0.05)
-                    raise
+            from .ui.file_picker import find_file_picker
+
+            picker = wait_until(lambda: find_file_picker(b, b.window), timeout=30)
+            try:
+                picker.set_path(path)
+                picker.confirm()
+                wait_until(lambda: find_file_picker(b, b.window), lambda value: value is None)
+            except Exception:
+                if find_file_picker(b, b.window) is not None:
+                    picker.cancel()
+                raise
             if kind == "file":
                 preview = wait_until(
                     lambda: b.find(

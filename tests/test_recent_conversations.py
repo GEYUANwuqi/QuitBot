@@ -5,9 +5,9 @@ from types import SimpleNamespace
 import pytest
 
 from quitbot_backend._engine.errors import ControlUnavailable, TargetMismatch
-from quitbot_backend._engine.infrastructure.uia.recent import RecentConversations
 from quitbot_backend._engine.models import Target
-from quitbot_backend._engine.uia import UIABackend
+from quitbot_backend._engine.ui.backend import DesktopBackend
+from quitbot_backend._engine.ui.workflows.recent import RecentConversations
 
 
 def control(kind="GroupControl", name="", cls="", children=(), focus=False):
@@ -25,7 +25,7 @@ def control(kind="GroupControl", name="", cls="", children=(), focus=False):
 
 @pytest.fixture
 def recent_ui(monkeypatch):
-    from quitbot_backend._engine.infrastructure.uia import recent as module
+    from quitbot_backend._engine.ui.workflows import recent as module
 
     state = {
         "keyboard_menu": False,
@@ -51,7 +51,7 @@ def recent_ui(monkeypatch):
     main.NativeWindowHandle = 100
     main.SetActive = lambda **_: calls.append("activate")
     previous = object()
-    b = UIABackend.__new__(UIABackend)
+    b = DesktopBackend.__new__(DesktopBackend)
     b.window, b.main_window = previous, main
     b.check_thread = lambda: None
     b._require_no_modal = lambda: None
@@ -194,13 +194,13 @@ def test_identity_read_never_accepts_stale_clipboard_or_service_conversations(
 
 
 def test_detaching_reuses_window_opened_by_qq_and_reports_failed_stage(monkeypatch):
-    from quitbot_backend._engine.infrastructure.uia.recent import RecentConversations
+    from quitbot_backend._engine.ui.workflows.recent import RecentConversations
 
     target = Target("20001", "fixture group")
     calls = []
     main = SimpleNamespace(SetActive=lambda **_: None)
     detached = SimpleNamespace(NativeWindowHandle=200, ProcessId=10)
-    b = UIABackend.__new__(UIABackend)
+    b = DesktopBackend.__new__(DesktopBackend)
     b.window = b.main_window = main
     b._detached = {}
     b.check_thread = lambda: None

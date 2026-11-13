@@ -226,7 +226,7 @@ def test_observed_random_sticker_is_deliverable_without_fabricating_result():
 )
 def test_observed_cards_keep_visible_text_without_fabricating_payload(fixture, target, expected):
     from quitbot_backend._engine.errors import ControlUnavailable
-    from quitbot_backend._engine.infrastructure.uia.sharing import contact_card_name
+    from quitbot_backend._engine.ui.workflows.sharing import contact_card_name
 
     root = load_tree(fixture + ".json")
     message = parse_messages(root, target.id, peer_name=target.name)[0]

@@ -3,8 +3,8 @@ from types import SimpleNamespace
 import pytest
 
 from quitbot_backend._engine.errors import FocusLost, TargetMismatch
-from quitbot_backend._engine.infrastructure.atspi.file_picker import FilePicker
-from quitbot_backend._engine.infrastructure.atspi.x11 import Window
+from quitbot_backend._engine.platforms.linux.file_picker import FilePicker
+from quitbot_backend._engine.platforms.linux.x11 import Window
 
 
 def picker_fixture():
@@ -21,9 +21,31 @@ def test_picker_refuses_replaced_owner_window_or_lost_focus():
     auto.desktop.foreground = lambda: 11
     with pytest.raises(FocusLost):
         picker.check()
+
     auto.find_file_picker = lambda owner: None
     with pytest.raises(TargetMismatch):
         picker.check()
+
+
+def test_verified_field_text_is_transferred_from_the_temporary_gtk_owner():
+    auto, picker = picker_fixture()
+    state = {"sequence": 0, "owner": None, "text": ""}
+
+    def clipboard(value):
+        state.update(sequence=state["sequence"] + 1, owner="persistent", text=value)
+
+    def copy(keys):
+        assert keys == "{Ctrl}a{Ctrl}c"
+        state.update(
+            sequence=state["sequence"] + 1, owner="gtk", text="/fixture/示例.png"
+        )
+
+    auto.desktop.set_clipboard = clipboard
+    auto.clipboard_sequence = lambda: state["sequence"]
+    auto.SendKeys = copy
+    auto.GetClipboardText = lambda: state["text"]
+    assert picker.copy_field() == "/fixture/示例.png"
+    assert state["owner"] == "persistent" and state["text"] == "/fixture/示例.png"
 
 
 def test_picker_does_not_confirm_unverified_path(monkeypatch):

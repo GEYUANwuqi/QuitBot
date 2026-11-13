@@ -9,16 +9,16 @@ from quitbot_backend._engine.errors import (
     MutationOutcomeUnknown,
     TargetMismatch,
 )
-from quitbot_backend._engine.infrastructure.uia.member_interactions import (
+from quitbot_backend._engine.models import GroupMemberInfo, Node, Target
+from quitbot_backend._engine.ui.workflows.member_interactions import (
     MemberInteractionsUI,
 )
-from quitbot_backend._engine.models import GroupMemberInfo, Node, Target
 
 
 @pytest.fixture(autouse=True)
 def native_guards(monkeypatch):
     monkeypatch.setattr(
-        "quitbot_backend._engine.infrastructure.uia.member_interactions.require_unlocked",
+        "quitbot_backend._engine.ui.workflows.member_interactions.require_unlocked",
         lambda _: None,
     )
 
@@ -29,7 +29,7 @@ def native_guards(monkeypatch):
         return result
 
     monkeypatch.setattr(
-        "quitbot_backend._engine.infrastructure.uia.member_interactions.wait_until", wait_once
+        "quitbot_backend._engine.ui.workflows.member_interactions.wait_until", wait_once
     )
 
 

@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from quitbot_backend._engine.uia import UIABackend
+from quitbot_backend._engine.ui.backend import DesktopBackend
 
 
 def test_focus_editor_uses_recreated_composer_without_replaying_focus_or_input():
@@ -12,7 +12,7 @@ def test_focus_editor_uses_recreated_composer_without_replaying_focus_or_input()
         state["focused"] = new
 
     old = SimpleNamespace(SetFocus=focus)
-    backend = UIABackend.__new__(UIABackend)
+    backend = DesktopBackend.__new__(DesktopBackend)
     backend.window = SimpleNamespace(SetActive=lambda **_: calls.append("activate"))
     backend.editor = lambda: new if state["focused"] is not None else old
     backend.auto = SimpleNamespace(
@@ -31,7 +31,7 @@ def test_control_focus_resolver_is_explicit_and_checks_fresh_control_identity():
         state["focused"] = current
 
     old = SimpleNamespace(SetFocus=focus)
-    b = UIABackend.__new__(UIABackend)
+    b = DesktopBackend.__new__(DesktopBackend)
     b.window = SimpleNamespace(SetActive=lambda **_: None)
     b.auto = SimpleNamespace(
         GetFocusedControl=lambda: state["focused"], ControlsAreSame=lambda a, c: a is c

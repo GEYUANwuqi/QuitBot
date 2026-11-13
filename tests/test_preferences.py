@@ -4,11 +4,11 @@ from types import SimpleNamespace
 import pytest
 
 from quitbot_backend._engine.errors import ControlUnavailable, MutationOutcomeUnknown
-from quitbot_backend._engine.infrastructure.uia.preferences import (
+from quitbot_backend._engine.models import Target
+from quitbot_backend._engine.ui.workflows.preferences import (
     PreferencesUI,
     selected_label,
 )
-from quitbot_backend._engine.models import Target
 
 
 @pytest.mark.parametrize(

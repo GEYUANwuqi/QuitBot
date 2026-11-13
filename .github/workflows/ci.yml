@@ -89,7 +89,7 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - name: Install native accessibility dependencies
-        run: sudo apt-get update && sudo apt-get install -y at-spi2-core gir1.2-atspi-2.0 libgirepository1.0-dev libcairo2-dev python3-dev pkg-config xvfb openbox dbus-x11 xauth x11-utils xdotool xclip
+        run: sudo apt-get update && sudo apt-get install -y at-spi2-core gir1.2-atspi-2.0 libgirepository1.0-dev libcairo2-dev python3-dev pkg-config xvfb openbox stalonetray dbus-x11 xauth x11-utils xdotool xclip
       - name: Install backend dependencies
         run: uv sync --locked --no-install-project
       - name: Check Python

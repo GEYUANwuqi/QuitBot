@@ -9,11 +9,11 @@ from quitbot_backend._engine.errors import (
     MutationOutcomeUnknown,
     TargetMismatch,
 )
-from quitbot_backend._engine.infrastructure.uia.reactions import (
+from quitbot_backend._engine.models import Message, Node, Target
+from quitbot_backend._engine.ui.workflows.reactions import (
     ReactionsUI,
     parse_reaction_chip,
 )
-from quitbot_backend._engine.models import Message, Node, Target
 
 
 def chip(selected=False, count="1"):
@@ -59,7 +59,7 @@ def test_chip_rejects_missing_or_inconsistent_own_state():
 
 
 def provider(monkeypatch, *, states=(), target_kind="group", cleanup_error=False):
-    import quitbot_backend._engine.infrastructure.uia.reactions as module
+    import quitbot_backend._engine.ui.workflows.reactions as module
 
     writes = []
     current = list(states)
@@ -181,7 +181,7 @@ def test_remove_only_unique_own_chip_and_preserves_peer_reactions(
 
 
 def test_quick_reaction_is_selected_by_fresh_tooltip_not_slot(monkeypatch):
-    import quitbot_backend._engine.infrastructure.uia.reactions as module
+    import quitbot_backend._engine.ui.workflows.reactions as module
 
     menu, window, more = object(), object(), object()
     current, writes = [None], []
@@ -233,7 +233,7 @@ def test_quick_reaction_is_selected_by_fresh_tooltip_not_slot(monkeypatch):
 
 
 def test_palette_reaction_rebinds_after_scroll_and_rejects_missing_or_ambiguous_text(monkeypatch):
-    import quitbot_backend._engine.infrastructure.uia.reactions as module
+    import quitbot_backend._engine.ui.workflows.reactions as module
 
     menu = object()
     more = SimpleNamespace(ClassName="menu-stickers-item")

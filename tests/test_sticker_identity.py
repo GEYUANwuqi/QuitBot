@@ -3,6 +3,7 @@ from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
+from pydantic import TypeAdapter
 
 from quitbot_backend._engine.domain.stickers import FavoriteSticker
 from quitbot_backend._engine.errors import (
@@ -11,11 +12,24 @@ from quitbot_backend._engine.errors import (
     MutationOutcomeUnknown,
     TargetMismatch,
 )
-from quitbot_backend._engine.infrastructure.uia.stickers import (
+from quitbot_backend._engine.instance import FavoriteStickerCollection
+from quitbot_backend._engine.ui.workflows.stickers import (
     StickersUI,
     select_sticker,
 )
-from quitbot_backend._engine.instance import FavoriteStickerCollection
+
+
+def test_sticker_reference_preserves_native_platform_identity_in_api_results():
+    from quitbot_backend.contracts import ACTIONS, validate_result
+
+    for identity in ((1, 2, 3), (":1.42", "/org/a11y/atspi/accessible/7")):
+        sticker = FavoriteSticker("test", 1, identity, "fixture", 0)
+        result = validate_result(ACTIONS["x_get_favorite_stickers"], [sticker])
+        assert result[0]["runtime_id"] == list(identity)
+        assert (
+            TypeAdapter(FavoriteSticker).validate_python(result[0]).runtime_id
+            == identity
+        )
 
 
 def test_sticker_identity_rejects_cross_account_stale_and_ambiguous_names():
@@ -42,12 +56,20 @@ def test_sticker_identity_rejects_cross_account_stale_and_ambiguous_names():
         scope.items()
 
 
-def test_sticker_delete_reports_unknown_instead_of_replaying_when_other_item_changes(
+@pytest.mark.parametrize("by_name", [False, True])
+@pytest.mark.parametrize("other_name_changed", [False, True])
+def test_sticker_delete_rechecks_the_callers_identity_and_never_replays(
     monkeypatch,
+    by_name,
+    other_name_changed,
 ):
     source = FavoriteSticker("test", 10, (1, 2), "test", 0)
     retained = replace(source, runtime_id=(1, 3), name="retained", index=1)
-    unexpected = replace(retained, runtime_id=(1, 4))
+    unexpected = replace(
+        retained,
+        runtime_id=(1, 4),
+        name="different" if other_name_changed else retained.name,
+    )
     calls = []
     api = StickersUI.__new__(StickersUI)
     api.b = SimpleNamespace(invoke=lambda action: calls.append(action))
@@ -63,9 +85,13 @@ def test_sticker_delete_reports_unknown_instead_of_replaying_when_other_item_cha
 
     api.panel = panel
     monkeypatch.setattr(
-        "quitbot_backend._engine.infrastructure.uia.stickers.wait_until",
+        "quitbot_backend._engine.ui.workflows.stickers.wait_until",
         lambda read, predicate=bool, **_: read(),
     )
-    with pytest.raises(MutationOutcomeUnknown):
-        api.delete("peer", source)
+    selector = source.name if by_name else source
+    if by_name and not other_name_changed:
+        assert api.delete("peer", selector) == source
+    else:
+        with pytest.raises(MutationOutcomeUnknown):
+            api.delete("peer", selector)
     assert calls.count("delete") == 1

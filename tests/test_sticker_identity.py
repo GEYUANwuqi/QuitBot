@@ -95,3 +95,56 @@ def test_sticker_delete_rechecks_the_callers_identity_and_never_replays(
         with pytest.raises(MutationOutcomeUnknown):
             api.delete("peer", selector)
     assert calls.count("delete") == 1
+
+
+@pytest.mark.parametrize("normalized", [False, True])
+def test_remark_waits_for_qq_normalization_before_submitting(normalized):
+    source = FavoriteSticker("test", 10, (1, 2), "old", 0)
+    calls = []
+    field = SimpleNamespace(Value="old")
+    field.GetValuePattern = lambda: field
+    field.SetValue = lambda value, **_: setattr(field, "Value", value)
+
+    class Confirm:
+        reads = 0
+
+        @property
+        def IsEnabled(self):
+            self.reads += 1
+            if self.reads == 1:
+                return False
+            if normalized:
+                field.Value = "newremark"
+            return True
+
+    confirm = Confirm()
+    api = StickersUI.__new__(StickersUI)
+    api.b = SimpleNamespace(
+        invoke=lambda control: calls.append(control),
+        focus_control=lambda _: None,
+        ensure_focus=lambda _: None,
+        auto=SimpleNamespace(SendKeys=lambda *a, **kw: None),
+    )
+    api.ui = SimpleNamespace(by_class=lambda _: None)
+    api._items = lambda: (replace(source, name=field.Value),)
+    api._select = lambda _: (object(), api._items()[0])
+    api._button = lambda *a: confirm
+
+    @contextmanager
+    def panel(_):
+        yield
+
+    @contextmanager
+    def editor(_):
+        yield object(), field
+
+    api.panel = panel
+    api._remark_editor = editor
+    if normalized:
+        with pytest.raises(ControlUnavailable, match="normalized"):
+            api.remark("peer", "old", "new-remark")
+        assert calls == []
+    else:
+        assert api.remark("peer", "old", "new-remark") == "new-remark"
+        assert calls == [confirm]
+    assert confirm.reads >= 2

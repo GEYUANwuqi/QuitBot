@@ -3,7 +3,7 @@
   "info": {
     "title": "QuitBot Account API",
     "description": "One QQ account per service. HTTP actions and WS share validation and result types. UI observations are partial; mutations are never retried automatically.",
-    "version": "0.14.0.dev2"
+    "version": "0.14.0"
   },
   "paths": {
     "/health": {
@@ -12146,6 +12146,7 @@
           },
           "label": {
             "type": "string",
+            "maxLength": 8,
             "minLength": 1,
             "title": "Label"
           },

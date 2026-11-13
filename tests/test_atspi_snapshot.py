@@ -13,7 +13,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "linux_atspi_messages.json"
 
 
 def snapshot():
-    return json.loads(FIXTURE.read_text())
+    return json.loads(FIXTURE.read_text(encoding="utf-8"))
 
 
 def test_atspi_messages_keep_identity_and_multiline_semantics():

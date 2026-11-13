@@ -109,7 +109,8 @@ function uv {
         command = [executable, "-NoLogo", "-NoProfile", "-NonInteractive", "-File", str(harness)]
 
     result = subprocess.run(
-        command, cwd=work, env=env, capture_output=True, text=True, timeout=30, check=False
+        command, cwd=work, env=env, capture_output=True, text=True,
+        encoding="utf-8", timeout=30, check=False
     )
     output = result.stdout + result.stderr
     assert (result.returncode == 0) == (case == "success"), output

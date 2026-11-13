@@ -145,7 +145,9 @@ Authorization: Bearer <access_token>
 
 `x_import_stickers` 返回 `{imported_count, collection, added, verified_in_ui}`：`collection` 是导入后的当前列表；仅在旧条目的标识保持有效、能够确定新增条目时，`added` 返回新增对象，否则为 `null`。调用方应按 `imported_count` 和回执判断结果。
 
-表情操作的 `selector` 支持唯一的非默认备注，或完整 `FavoriteSticker` 对象。对象的 `account`、`hwnd`、`runtime_id` 和名称都参与核验；`index` 仅供展示。Linux QQ 会在关闭收藏面板、导入或删除后重建对象标识，跨请求操作请先在 QQ 中为目标设置唯一备注。失效引用会返回错误，写操作不会按序号重新选择。
+表情操作的 `selector` 支持唯一的非默认备注，或完整 `FavoriteSticker` 对象。对象的 `account`、`hwnd`、`runtime_id` 和名称都参与核验；`index` 仅供展示。Windows 与 Linux QQ 都可能在关闭收藏面板、导入或删除后重建对象标识，跨请求操作请先在 QQ 中为目标设置唯一备注。`x_import_stickers` 的 `added` 是导入时的观察结果，后续请求仍会重新核验其有效性。失效引用会返回错误，写操作不会按序号重新选择。
+
+修改备注时会等待 QQ 完成输入处理，再核对待提交文本。QQ 若去掉连字符等字符，接口会取消修改并返回错误，保留原备注；建议使用汉字、字母或数字组成的唯一备注。
 
 `x_get_storage_paths.data_directory` 在客户端未显示数据目录时为 `null`。禁止加群时，QQ 隐藏的 `member_invites`、`bot_invites` 字段也返回 `null`。群文件排序读取当前平台实际提供的选项；Linux QQ 提供按最新、最旧时间排序。
 

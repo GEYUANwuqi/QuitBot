@@ -274,13 +274,15 @@ class StickersUI:
                     self.b.focus_control(field)
                     self.b.ensure_focus(field)
                     self.b.auto.SendKeys("{Tab}", waitTime=0.1)
+                    # QQ enables confirmation after its asynchronous input
+                    # normalization. Check the final value only after that.
+                    confirm = wait_until(
+                        lambda: self._button(dialog, "确定"), lambda c: c.IsEnabled
+                    )
                     if field.GetValuePattern().Value != value:
                         raise ControlUnavailable(
                             "QQ normalized the remark before submission; cancelled"
                         )
-                    confirm = self._button(dialog, "确定")
-                    if not confirm.IsEnabled:
-                        raise ControlUnavailable("Remark confirmation is disabled")
                     submitted[0] = True
                     self.b.invoke(confirm)
                     wait_until(

@@ -616,7 +616,7 @@ wheels = [
 
 [[package]]
 name = "quitbot"
-version = "0.14.0.dev2"
+version = "0.14.0"
 source = { editable = "." }
 dependencies = [
     { name = "comtypes", marker = "sys_platform == 'win32'" },

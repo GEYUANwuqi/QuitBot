@@ -168,10 +168,10 @@ class GroupSettingsUI:
             not isinstance(label, str)
             or not label.strip()
             or label != label.strip()
-            or len(label) > 20
+            or len(label) > 8
             or any(ord(c) < 32 for c in label)
         ):
-            raise ValueError("Tag must be a nonblank label of at most 20 characters")
+            raise ValueError("Tag must be a nonblank label of at most 8 characters")
         if type(enabled) is not bool:
             raise ValueError("enabled must be a boolean")
         submitted = [False]
@@ -380,7 +380,11 @@ class GroupSettingsUI:
         return self.ui.by_class("q-radio", self._row(panel, label), required=True)
 
     def _dropdown(self, panel, section):
-        wrapper = self.ui.by_class("wrapper", panel, required=True)
+        # Windows exposes the sections directly under the side panel; Linux
+        # keeps QQ's extra wrapper node. The section boundaries are the same.
+        wrapper = self.ui.by_class("wrapper", panel)
+        if wrapper is None:
+            wrapper = panel
         active, candidates = False, []
         for child in wrapper.GetChildren():
             if "field-title" in child.ClassName.split():

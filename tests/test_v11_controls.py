@@ -69,8 +69,11 @@ def policy_reader():
     return GroupSettingsUI(ui), Control(load_tree("v11_join_policy.json"))
 
 
-def test_join_policy_uses_section_titles_to_disambiguate_identical_approval_labels():
+@pytest.mark.parametrize("wrapped", [True, False])
+def test_join_policy_uses_section_titles_to_disambiguate_identical_approval_labels(wrapped):
     reader, panel = policy_reader()
+    if not wrapped:
+        panel.children = panel.children[0].children
     result = reader._policy(Target("20001", "测试群"), panel)
     assert result == GroupJoinPolicy(
         "20001", "verify", "需要发送验证消息", True, "under100", True, "direct"
@@ -146,6 +149,20 @@ def test_group_tag_labels_can_be_exposed_only_as_child_text():
     panel.children.append(panel.children[1])
     with pytest.raises(ControlUnavailable, match="ambiguous"):
         reader._tags(panel)
+
+
+def test_group_tag_length_is_rejected_before_navigation_and_by_the_contract():
+    from pydantic import ValidationError
+
+    from quitbot_backend.contracts import ACTIONS
+
+    params = ACTIONS["x_set_group_tag"].params
+    assert params(target_id="20001", label="合成标签边界测试", enabled=True).label == "合成标签边界测试"
+    label = "合成标签边界测试长"
+    with pytest.raises(ValidationError):
+        params(target_id="20001", label=label, enabled=True)
+    with pytest.raises(ValueError, match="8 characters"):
+        GroupSettingsUI(SimpleNamespace(b=None)).set_tag("20001", label, True)
 
 
 @pytest.mark.parametrize(

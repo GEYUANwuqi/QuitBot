@@ -520,7 +520,7 @@ add("x_get_group_share_link", create_model("ShareLink", url=(str, ...)), target)
 add(
     "x_set_group_tag",
     GroupTagReceipt,
-    {**target, "label": (Text, ...), **enabled},
+    {**target, "label": (Annotated[str, Field(min_length=1, max_length=8)], ...), **enabled},
     write=True,
 )
 add(

@@ -1,5 +1,5 @@
 {
-  "version": "0.14.0.dev2",
+  "version": "0.14.0",
   "actions": [
     {
       "name": "get_login_info",
@@ -7502,6 +7502,7 @@
         },
         "label": {
           "type": "string",
+          "maxLength": 8,
           "minLength": 1,
           "title": "Label"
         },

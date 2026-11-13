@@ -1,6 +1,6 @@
 [project]
 name = "quitbot"
-version = "0.14.0.dev2"
+version = "0.14.0"
 description = "Asynchronous QQ account service for Windows and Linux desktops"
 readme = "README.md"
 requires-python = ">=3.12"

@@ -88,6 +88,27 @@ def test_join_policy_rejects_multiple_selected_radio_controls():
         reader._read(panel, "join_mode")
 
 
+def test_join_policy_ignores_settings_summary_with_the_same_verification_label():
+    reader, panel = policy_reader()
+    panel.children.insert(
+        0,
+        Control(
+            Node(
+                class_name="q-list-item has-top-border-radius list-item",
+                children=(
+                    Node(name="加群方式"),
+                    Node(
+                        class_name="suffix-content",
+                        children=(Node(name="需要发送验证消息"),),
+                    ),
+                ),
+            )
+        ),
+    )
+    result = reader._policy(Target("20001", "测试群"), panel)
+    assert result.verification == "需要发送验证消息"
+
+
 def test_closed_admission_reports_hidden_invitation_settings_as_unobserved():
     reader, panel = policy_reader()
     wrapper = panel.children[0]

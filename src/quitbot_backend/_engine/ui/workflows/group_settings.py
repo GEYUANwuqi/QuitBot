@@ -452,6 +452,7 @@ class GroupSettingsUI:
                 lambda c, label=label: (
                     "q-list-item" in c.ClassName.split()
                     and any(x.Name == label for x in self.b.walk(c))
+                    and self.ui.by_class("q-radio", c) is not None
                 ),
                 False,
             )

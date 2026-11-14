@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Globe, KeyRound, RefreshCw, Save } from "lucide-react";
+import { Check, FileText, Globe, KeyRound, RefreshCw, Save } from "lucide-react";
 import type { components } from "./generated/management";
 import { Connection } from "./transport";
 import { accountProfile, format, type Status } from "./types";
@@ -10,6 +10,7 @@ type ConfigView = components["schemas"]["ConfigView"];
 type Config = components["schemas"]["ServiceConfig"];
 type Account = components["schemas"]["AccountConfig"];
 type WebUI = components["schemas"]["WebUIConfig"];
+type Logging = components["schemas"]["LoggingConfig"];
 const webuiDefaults: WebUI = {
   host: "127.0.0.1",
   port: 6699,
@@ -53,6 +54,7 @@ export default function SettingsPage({
     /* Keep incomplete JSON for editing. */
   }
   const webui = { ...webuiDefaults, ...config?.webui };
+  const logging = { retention_days: 7, ...config?.logging };
   const changed = !!view && draft !== format(view.config);
 
   function show(next: ConfigView) {
@@ -147,6 +149,11 @@ export default function SettingsPage({
       next.webui = { ...webui, ...patch };
     });
   }
+  function editLogging(patch: Partial<Logging>) {
+    edit((next) => {
+      next.logging = { ...logging, ...patch };
+    });
+  }
   async function controlAccount(accountId: string, action: AccountAction) {
     await run(async () => {
       const identity = view?.activated_accounts.find(
@@ -228,6 +235,7 @@ export default function SettingsPage({
           >
             {[
               ["webui", "WebUI 与登录"],
+              ["logs", "日志"],
               ["advanced", "高级配置"],
             ].map(([id, label]) => (
               <button
@@ -284,7 +292,7 @@ export default function SettingsPage({
                 ? "WebUI 等待重启"
                 : "已读取配置"}
           </Badge>
-          <span>登录设置热更新，WebUI 地址和端口重启生效。</span>
+          <span>登录与日志设置热更新，WebUI 地址和端口重启生效。</span>
         </div>
       )}
       {error && (
@@ -439,6 +447,41 @@ export default function SettingsPage({
             </button>
           </section>
         </div>
+      )}
+      {section === "other" && tab === "logs" && (
+        <section className="card settings-card">
+          <div className="card-heading">
+            <span className="tile-icon blue">
+              <FileText size={22} />
+            </span>
+            <div>
+              <h2>运行日志</h2>
+              <p>按天自动保存，反馈问题时可直接附上对应日期的日志文件。</p>
+            </div>
+          </div>
+          <label className="field">
+            日志保留天数
+            <input
+              type="number"
+              min="1"
+              max="365"
+              step="1"
+              value={logging.retention_days}
+              disabled={!view || busy}
+              onChange={(e) =>
+                editLogging({ retention_days: Number(e.target.value) })
+              }
+            />
+            <small>默认 7 天，可设置 1–365 天，包含当天。保存后立即清理超期文件。</small>
+          </label>
+          <p className="endpoint-line mono">日志目录：{view?.log_directory || "读取中"}</p>
+          <p className="settings-hint">
+            文件名为 quitbot-YYYY-MM-DD.log。日志包含启动与运行异常、接口响应代码、失败调用堆栈、监听和配置应用错误。
+          </p>
+          <p className="muted">
+            提交 Issue 前请检查文件，遮盖真实 QQ 号、群号及私人内容。
+          </p>
+        </section>
       )}
       {section === "other" && tab === "advanced" && (
         <section className="card settings-card">

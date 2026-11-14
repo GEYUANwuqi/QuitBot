@@ -23,7 +23,7 @@ requires = ["hatchling>=1.27,<2"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build]
-exclude = ["/dev", "/.local", "/config", "**/snowluma_catalog*.json", "**/napcat_catalog*.json"]
+exclude = ["/dev", "/.local", "/config", "/logs", "**/snowluma_catalog*.json", "**/napcat_catalog*.json"]
 artifacts = ["/src/quitbot_backend/_webui/**"]
 
 [tool.hatch.build.hooks.custom]

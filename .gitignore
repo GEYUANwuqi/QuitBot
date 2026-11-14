@@ -26,3 +26,4 @@ tools/
 flauinspect/
 *.tsbuildinfo
 AGENTS.md
+logs/

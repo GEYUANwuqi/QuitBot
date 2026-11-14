@@ -14,6 +14,7 @@ from fastapi import HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .config import write_json
+from .diagnostics import log_reply
 
 SESSION_SECONDS = 4 * 60 * 60
 PASSWORD_ITERATIONS = 600_000
@@ -232,10 +233,21 @@ async def authenticate_socket(
     if header:
         token = bearer(header)
         if keys.valid(token, allow_password_change=allow_login):
+            log_reply("x_authenticate", {"status": "ok", "retcode": 0})
             return token
+        log_reply(
+            "x_authenticate",
+            {
+                "status": "failed",
+                "retcode": 1401,
+                "message": "Valid session required",
+                "data": None,
+            },
+        )
         await socket.close(4401, "Valid session required")
         return None
     echo = {}
+    action = "<invalid authentication>"
     try:
         raw = await asyncio.wait_for(socket.receive_text(), timeout=10)
         if len(raw.encode("utf-8")) > 4096:
@@ -246,6 +258,7 @@ async def authenticate_socket(
         if "echo" in request:
             echo = {"echo": request["echo"]}
         params = request.get("params", {})
+        action = request.get("action")
         if not isinstance(params, dict):
             raise TypeError("Invalid authentication parameters")
         if allow_login and request.get("action") == "x_login":
@@ -260,6 +273,7 @@ async def authenticate_socket(
         else:
             raise HTTPException(401, "请先登录")
         await socket.send_json({"status": "ok", "retcode": 0, "data": data, **echo})
+        log_reply(action, {"status": "ok", "retcode": 0})
         return token
     except (
         TimeoutError,
@@ -268,19 +282,19 @@ async def authenticate_socket(
         TypeError,
         RecursionError,
     ) as error:
-        await socket.send_json(
-            {
-                "status": "failed",
-                "retcode": 1000 + error.status_code
-                if isinstance(error, HTTPException)
-                else 1401,
-                "data": None,
-                "message": error.detail
-                if isinstance(error, HTTPException)
-                else "登录请求无效",
-                **echo,
-            }
-        )
+        response = {
+            "status": "failed",
+            "retcode": 1000 + error.status_code
+            if isinstance(error, HTTPException)
+            else 1401,
+            "data": None,
+            "message": error.detail
+            if isinstance(error, HTTPException)
+            else "登录请求无效",
+            **echo,
+        }
+        log_reply(action, response, error=error)
+        await socket.send_json(response)
         await socket.close(4401, "Authentication failed")
         return None
     except WebSocketDisconnect:

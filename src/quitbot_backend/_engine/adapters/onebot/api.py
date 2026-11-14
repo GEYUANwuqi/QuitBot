@@ -38,6 +38,7 @@ from quitbot_backend._engine.infrastructure.storage.media import ImageCache
 from quitbot_backend._engine.infrastructure.storage.message_index import MessageIndex
 from quitbot_backend._engine.operations import validate_text
 from quitbot_backend._engine.platforms import TRANSPORT_NAME
+from quitbot_backend.diagnostics import log_reply
 
 SECONDARY_ACTIONS = (
     "x_get_group_applications",
@@ -446,6 +447,7 @@ class OneBotAdapter:
         return value
 
     async def handle(self, value):
+        failure = None
         request = (
             ApiRequest("", {}, value.get("echo"), "echo" in value)
             if isinstance(value, dict)
@@ -456,10 +458,13 @@ class OneBotAdapter:
             data = await self._action(request.action, request.params)
             response = ApiResponse("ok", 0, data)
         except Unsupported as error:
+            failure = error
             response = ApiResponse("failed", 1404, message=str(error))
         except (ValueError, TypeError, KeyError) as error:
+            failure = error
             response = ApiResponse("failed", 1400, message=str(error))
-        except (SendOutcomeUnknown, MutationOutcomeUnknown):
+        except (SendOutcomeUnknown, MutationOutcomeUnknown) as error:
+            failure = error
             response = ApiResponse(
                 "failed",
                 101,
@@ -467,8 +472,12 @@ class OneBotAdapter:
                 "Mutation outcome unknown; inspect QQ before retrying",
             )
         except (QuitBotError, OSError, RuntimeError) as error:
+            failure = error
             response = ApiResponse("failed", 100, message=str(error))
-        return response.to_dict(request)
+        result = response.to_dict(request)
+        if failure is not None:
+            log_reply(request.action if request else None, result, account=self.self_id, error=failure)
+        return result
 
     def _scope(self, kind, number):
         scope = self.qq.conversation(str(numeric_id(number)))

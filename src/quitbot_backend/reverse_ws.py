@@ -8,6 +8,7 @@ import time
 from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosed, InvalidStatus, WebSocketException
 
+from .diagnostics import log_reply, transport
 from .runtime import AccountRuntime
 
 log = logging.getLogger(__name__)
@@ -23,7 +24,11 @@ class ReverseWebSocket:
     def start(self) -> None:
         if self.config.enabled and self._task is None:
             self.status.state = "connecting"
-            self._task = asyncio.create_task(self._run())
+            token = transport.set("reverse_ws")
+            try:
+                self._task = asyncio.create_task(self._run())
+            finally:
+                transport.reset(token)
 
     async def close(self) -> None:
         task, self._task = self._task, None
@@ -40,6 +45,7 @@ class ReverseWebSocket:
         if self.config.access_token:
             headers["Authorization"] = "Bearer " + self.config.access_token
         while True:
+            failure = None
             try:
                 async with connect(
                     self.config.url,
@@ -55,17 +61,27 @@ class ReverseWebSocket:
                     await self._session(socket)
                     message = f"连接已关闭（{socket.close_code}）"
             except InvalidStatus as error:
+                failure = error
                 message = f"握手失败（HTTP {error.response.status_code}）"
             except ConnectionClosed as error:
+                failure = error
                 message = (
                     f"连接已关闭（{error.rcvd.code if error.rcvd else '未收到关闭帧'}）"
                 )
             except (OSError, TimeoutError, WebSocketException) as error:
+                failure = error
                 # Exception text may contain a URL, headers or the receiver's body.
                 message = f"连接失败（{type(error).__name__}）"
             self.status.state = "reconnecting"
             if self.status.last_error != message:
-                log.warning("Reverse WS account %s: %s", headers["X-Self-ID"], message)
+                log.warning(
+                    "Reverse WS account %s: %s",
+                    headers["X-Self-ID"],
+                    message,
+                    exc_info=(type(failure), failure, failure.__traceback__)
+                    if failure
+                    else None,
+                )
             self.status.last_error = message
             await asyncio.sleep(self.config.reconnect_interval)
 
@@ -99,7 +115,18 @@ class ReverseWebSocket:
                     continue
                 try:
                     request = json.loads(raw)
-                except (ValueError, RecursionError):
+                except (ValueError, RecursionError) as error:
+                    log_reply(
+                        "<invalid JSON>",
+                        {
+                            "status": "failed",
+                            "retcode": 1400,
+                            "message": "Invalid JSON",
+                            "data": None,
+                        },
+                        account=self.runtime.config.account_id,
+                        error=error,
+                    )
                     await send(
                         {
                             "status": "failed",

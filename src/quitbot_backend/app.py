@@ -23,6 +23,7 @@ from . import __version__
 from .auth import AccessKeys, authenticate_socket, guard_session
 from .config import AccountConfig
 from .contracts import ACTIONS, Reply
+from .diagnostics import instrument_app, log_reply
 from .reverse_ws import ReverseWebSocket
 from .runtime import AccountRuntime
 
@@ -197,7 +198,18 @@ def create_app(
                     continue
                 try:
                     request = json.loads(raw)
-                except (ValueError, RecursionError):
+                except (ValueError, RecursionError) as error:
+                    log_reply(
+                        "<invalid JSON>",
+                        {
+                            "status": "failed",
+                            "retcode": 1400,
+                            "data": None,
+                            "message": "Invalid JSON",
+                        },
+                        account=config.account_id,
+                        error=error,
+                    )
                     await send(
                         {
                             "status": "failed",
@@ -282,4 +294,5 @@ def create_app(
         ],
         "schemas": schema["components"]["schemas"],
     }
+    instrument_app(app)
     return app

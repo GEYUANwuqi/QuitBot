@@ -74,7 +74,7 @@ def read_archive(path):
 def check_contents(path):
     files = read_archive(path)
     private_directories = {
-        "config", "dev", ".local", ".git", ".venv", "node_modules", "__pycache__",
+        "config", "logs", "dev", ".local", ".git", ".venv", "node_modules", "__pycache__",
         "spy++", "spypp", "flauinspect",
     }
     for name in files:

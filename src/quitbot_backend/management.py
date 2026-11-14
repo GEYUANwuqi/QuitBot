@@ -2,8 +2,10 @@
 
 import asyncio
 import json
+import logging
 from pathlib import Path
 from typing import Annotated
+from uuid import uuid4
 
 from fastapi import (
     Depends,
@@ -30,9 +32,12 @@ from .auth import (
 )
 from .config import ServiceConfig
 from .contracts import RuntimeStatus
+from .diagnostics import instrument_app, log_reply, request_id
 from .discovery import DiscoveredWindow, DiscoveryView
 from .qq_login import QQLoginAction, QQLoginRequest, QQLoginStart, QQLoginView
 from .service import Service
+
+log = logging.getLogger(__name__)
 
 
 class ConfigUpdate(BaseModel):
@@ -65,6 +70,7 @@ class ConfigView(BaseModel):
     config: ServiceConfig
     revision: str
     applied_revision: str | None
+    log_directory: str
     errors: dict[str, str]
     accounts: list[RunningAccount]
     activated_accounts: list[DiscoveredWindow]
@@ -257,6 +263,8 @@ def create_management_app(
                     await socket.close(1009)
                     break
                 echo = {}
+                request_id.set(uuid4().hex[:12])
+                action = "<invalid>"
                 try:
                     packet = json.loads(raw)
                     if not isinstance(packet, dict) or set(packet) - {
@@ -286,6 +294,7 @@ def create_management_app(
                             watcher = watch()
                     elif action == "x_logout" and not params:
                         service.access.logout(token)
+                        log_reply(action, {"status": "ok", "retcode": 0})
                         await socket.send_json(
                             {"status": "ok", "retcode": 0, "data": None, **echo}
                         )
@@ -346,6 +355,14 @@ def create_management_app(
                         "message": message,
                         **echo,
                     }
+                    log_reply(action, response, error=error)
+                except Exception:
+                    log.exception(
+                        "Unexpected management action failure action=%s", action
+                    )
+                    raise
+                else:
+                    log_reply(action, response)
                 await socket.send_json(response)
         except (WebSocketDisconnect, RuntimeError):
             pass
@@ -404,4 +421,5 @@ def create_management_app(
     )
     if directory.is_dir():
         app.mount("/", StaticFiles(directory=directory, html=True), name="console")
+    instrument_app(app)
     return app

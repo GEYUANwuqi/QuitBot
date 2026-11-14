@@ -294,6 +294,8 @@ export interface components {
             revision: string;
             /** Applied Revision */
             applied_revision: string | null;
+            /** Log Directory */
+            log_directory: string;
             /** Errors */
             errors: {
                 [key: string]: string;
@@ -372,6 +374,14 @@ export interface components {
              * @default 6700
              */
             port: number;
+        };
+        /** LoggingConfig */
+        LoggingConfig: {
+            /**
+             * Retention Days
+             * @default 7
+             */
+            retention_days: number;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -550,6 +560,7 @@ export interface components {
         /** ServiceConfig */
         ServiceConfig: {
             webui?: components["schemas"]["WebUIConfig"];
+            logging?: components["schemas"]["LoggingConfig"];
             /** Accounts */
             accounts?: components["schemas"]["AccountConfig"][];
         };

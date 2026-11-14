@@ -1,6 +1,7 @@
 """Run QQ and QuitBot together in a persistent, private Linux X11 session."""
 
 import argparse
+import logging
 import os
 import secrets
 import shutil
@@ -10,6 +11,16 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+
+from .diagnostics import configure_logging
+
+
+class DesktopArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        logging.getLogger(__name__).error(
+            "Desktop startup rejected: %s", message, stack_info=True
+        )
+        super().error(message)
 
 
 def enable_accessibility():
@@ -110,7 +121,7 @@ def session(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = DesktopArgumentParser(description=__doc__)
     parser.add_argument("--display", default=":99")
     parser.add_argument("--screen", default="1440x1000x24")
     parser.add_argument("--qq", default="/opt/QQ/qq")
@@ -151,4 +162,21 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    logs = configure_logging(Path.cwd() / "logs")
+    try:
+        from .config import load_config
+
+        path = Path(os.environ.get("QUITBOT_CONFIG", "config/accounts.json"))
+        if path.exists():
+            config = load_config(path)
+            logs.configure(
+                config.logging.retention_days,
+                (a.reverse_ws.access_token for a in config.accounts),
+            )
+        main()
+    except Exception:
+        logging.getLogger(__name__).exception("Desktop startup or session failure")
+        raise SystemExit(1) from None
+    finally:
+        logging.getLogger().removeHandler(logs)
+        logs.close()

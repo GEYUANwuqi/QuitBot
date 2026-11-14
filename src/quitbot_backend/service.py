@@ -6,6 +6,7 @@ import socket
 import time
 from contextlib import AsyncExitStack, nullcontext
 from dataclasses import dataclass
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
@@ -73,6 +74,7 @@ def server_for(app, host: str, port: int, *, lifespan="auto") -> uvicorn.Server:
             ws_max_size=1024 * 1024,
             ws_max_queue=16,
             log_level="warning",
+            log_config=None,
             access_log=False,
             lifespan=lifespan,
         )
@@ -110,8 +112,10 @@ class Service:
         discover=scan_windows,
         resolve_profile=read_window_profile,
         login_driver_factory=None,
+        logs=None,
     ):
         self.store, self.access = store, access
+        self.logs = logs
         self.management_port = management_port or store.current.webui.port
         self.management_host = management_host or store.current.webui.host
         self.port_overridden = port_overridden
@@ -254,6 +258,9 @@ class Service:
             "config": self.store.current.model_dump(mode="json"),
             "revision": self.store.revision,
             "applied_revision": self.applied_revision,
+            "log_directory": str(
+                self.logs.directory if self.logs is not None else Path.cwd() / "logs"
+            ),
             "errors": self.errors,
             "activated_accounts": [
                 w.model_dump()
@@ -311,7 +318,7 @@ class Service:
                     else str(error)
                 )
                 if self.errors.get("configuration") != message:
-                    log.warning("Configuration rejected: %s", message)
+                    log.exception("Configuration rejected: %s", message)
                 self.errors["configuration"] = message
                 return
             if revision == self._observed:
@@ -393,6 +400,16 @@ class Service:
         wanted = {a.account_id: a for a in config.accounts}
         previous = {}
         self.errors.clear()
+        if self.logs is not None:
+            try:
+                await asyncio.to_thread(
+                    self.logs.configure,
+                    config.logging.retention_days,
+                    (a.reverse_ws.access_token for a in config.accounts),
+                )
+            except OSError as error:
+                log.exception("Log retention update failed")
+                self.errors["logging"] = str(error)
         for number, item in tuple(self.accounts.items()):
             if number not in wanted or item.config != wanted[number]:
                 previous[number] = (
@@ -412,11 +429,15 @@ class Service:
                     listening=bool(old and old[2] and account.targets),
                 )
             except (OSError, RuntimeError) as error:
+                log.exception("Account configuration apply failed account=%s", number)
                 self.errors[number] = str(error)
                 if old:
                     try:
                         await self._start(old[0], bound=old[1], listening=old[2])
                     except (OSError, RuntimeError) as rollback_error:
+                        log.exception(
+                            "Account configuration rollback failed account=%s", number
+                        )
                         self.errors[number] += f"; 恢复旧服务失败: {rollback_error}"
         self._observed = revision
         if not self.errors and not self.webui_restart_required:
@@ -424,6 +445,11 @@ class Service:
 
     async def watch(self):
         while not self.stopping.is_set():
+            if self.logs is not None:
+                try:
+                    await asyncio.to_thread(self.logs.maintain)
+                except OSError:
+                    log.exception("Log rotation or cleanup failed")
             await self.reload()
             try:
                 await asyncio.wait_for(self.stopping.wait(), 1)

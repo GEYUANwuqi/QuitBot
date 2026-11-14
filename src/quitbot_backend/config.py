@@ -166,9 +166,15 @@ class WebUIConfig(BaseModel):
     _host = field_validator("host")(listen_host)
 
 
+class LoggingConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    retention_days: int = Field(default=7, ge=1, le=365, strict=True)
+
+
 class ServiceConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     webui: WebUIConfig = Field(default_factory=WebUIConfig)
+    logging: LoggingConfig = Field(default_factory=LoggingConfig)
     accounts: list[AccountConfig] = Field(default_factory=list)
 
     @model_validator(mode="after")

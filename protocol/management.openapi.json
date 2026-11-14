@@ -660,6 +660,10 @@
             ],
             "title": "Applied Revision"
           },
+          "log_directory": {
+            "type": "string",
+            "title": "Log Directory"
+          },
           "errors": {
             "additionalProperties": {
               "type": "string"
@@ -690,6 +694,7 @@
           "config",
           "revision",
           "applied_revision",
+          "log_directory",
           "errors",
           "accounts",
           "activated_accounts",
@@ -875,6 +880,20 @@
         "additionalProperties": false,
         "type": "object",
         "title": "ListenerConfig"
+      },
+      "LoggingConfig": {
+        "properties": {
+          "retention_days": {
+            "type": "integer",
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Retention Days",
+            "default": 7
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "LoggingConfig"
       },
       "LoginRequest": {
         "properties": {
@@ -1311,6 +1330,9 @@
         "properties": {
           "webui": {
             "$ref": "#/components/schemas/WebUIConfig"
+          },
+          "logging": {
+            "$ref": "#/components/schemas/LoggingConfig"
           },
           "accounts": {
             "items": {

@@ -12,6 +12,7 @@ QuitBot 由 Python 后端、React 控制台和类型化协议组成。后端统�
 | `src/quitbot_backend/runtime.py` | 单账号生命周期、动作调度和事件订阅 |
 | `src/quitbot_backend/reverse_ws.py` | 按账号建立反向 WS，处理握手、收发、重连与关闭 |
 | `src/quitbot_backend/config.py`、`auth.py` | 配置校验与持久化、密码校验和会话管理 |
+| `src/quitbot_backend/diagnostics.py` | 按天保存日志、保留策略、异常堆栈脱敏和传输回执记录 |
 | `src/quitbot_backend/discovery.py` | 当前图形会话的 QQ 进程枚举、连接时的账号资料读取、结果模型 |
 | `src/quitbot_backend/_webui/` | 前端生成的静态资源与第三方许可声明，随 Python 包分发，Git 忽略 |
 | `src/quitbot_backend/service.py`、`management.py` | 配置热更新、账号服务调度和管理接口 |
@@ -21,6 +22,7 @@ QuitBot 由 Python 后端、React 控制台和类型化协议组成。后端统�
 | `protocol/` | OpenAPI 与动作目录 |
 | `tests/` | 后端回归检查 |
 | `config/` | 自动生成的账号配置、凭证和运行状态 |
+| `logs/` | 自动保存的运行日志，默认保留 7 天，不随分发包发布 |
 | `docs/` | 能力、接口与使用文档 |
 
 ```mermaid

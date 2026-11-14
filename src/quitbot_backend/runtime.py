@@ -1,9 +1,9 @@
 """One account, one action queue and one event stream. No transport dependency."""
 
 import asyncio
-import logging
 import time
 from pathlib import Path
+from uuid import uuid4
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import ValidationError
@@ -21,8 +21,7 @@ from ._engine.models import Target
 from ._engine.platforms import TRANSPORT_NAME
 from .config import AccountConfig
 from .contracts import ACTIONS, ReverseWSStatus, RuntimeStatus, validate_result
-
-log = logging.getLogger(__name__)
+from .diagnostics import log_reply, request_id, transport
 
 
 class AccountRuntime:
@@ -212,6 +211,12 @@ class AccountRuntime:
 
     def _source_error(self, error):
         self.last_error = str(error)
+        log_reply(
+            "listener_error",
+            {"status": "failed", "retcode": 100, "message": str(error), "data": None},
+            account=self.config.account_id,
+            error=error,
+        )
         self.publish(self.event("listener_error", message=str(error)))
 
     async def handle(self, value) -> dict:
@@ -222,19 +227,29 @@ class AccountRuntime:
             else {}
         )
         if self._closing or len(self._jobs) >= 64:
-            return {
+            response = {
                 "status": "failed",
                 "retcode": 100,
                 "data": None,
                 "message": "Service closing or action queue full",
                 **echo,
             }
+            log_reply(
+                value.get("action") if isinstance(value, dict) else None,
+                response,
+                account=self.config.account_id,
+            )
+            return response
         task = asyncio.create_task(self._handle(value, echo))
         self._jobs.add(task)
         task.add_done_callback(self._jobs.discard)
         return await asyncio.shield(task)
 
     async def _handle(self, value, echo):
+        if transport.get() != "http":
+            request_id.set(uuid4().hex[:12])
+        name, started = "<invalid>", time.monotonic()
+        failure = None
         try:
             if not isinstance(value, dict) or set(value) - {"action", "params", "echo"}:
                 raise ValueError("Use {action, params, echo?}")
@@ -284,12 +299,17 @@ class AccountRuntime:
                             {"action": name, "params": params}
                         )
                         if response["status"] != "ok":
+                            log_reply(
+                                name,
+                                response,
+                                account=self.config.account_id,
+                                elapsed=time.monotonic() - started,
+                            )
                             return {**response, **echo}
                         data = response["data"]
                 try:
                     data = validate_result(action, jsonable_encoder(data))
                 except (ValidationError, TypeError, ValueError) as error:
-                    log.exception("Invalid result contract for %s", name)
                     if action.mutating:
                         raise MutationOutcomeUnknown(
                             "Result contract failed after execution"
@@ -297,28 +317,39 @@ class AccountRuntime:
                     raise RuntimeError(
                         "Backend result does not match the declared schema"
                     ) from error
-            return {"status": "ok", "retcode": 0, "data": data, **echo}
+            response = {"status": "ok", "retcode": 0, "data": data, **echo}
+            log_reply(
+                name,
+                response,
+                account=self.config.account_id,
+                elapsed=time.monotonic() - started,
+            )
+            return response
         except Unsupported as error:
+            failure = error
             code, data, message = 1404, None, str(error)
-        except (SendOutcomeUnknown, MutationOutcomeUnknown):
+        except (SendOutcomeUnknown, MutationOutcomeUnknown) as error:
+            failure = error
             code, data, message = (
                 101,
                 {"retryable": False, "outcome": "unknown"},
                 "Operation outcome unknown; inspect QQ before retrying",
             )
         except (ValueError, TypeError, KeyError) as error:
+            failure = error
             code, data, message = 1400, None, str(error)
         except (QuitBotError, OSError, RuntimeError) as error:
+            failure = error
             code, data, message = 100, None, str(error)
-        except Exception:
-            log.exception("Unexpected action failure")
+        except Exception as error:  # noqa: BLE001 - log and return the established failure receipt
+            failure = error
             code, data, message = (
                 100,
                 None,
                 "Internal action failure; inspect server logs",
             )
         self.last_error = message
-        return {
+        response = {
             "status": "failed",
             "retcode": code,
             "data": data,
@@ -326,6 +357,14 @@ class AccountRuntime:
             "wording": message,
             **echo,
         }
+        log_reply(
+            name,
+            response,
+            account=self.config.account_id,
+            error=failure,
+            elapsed=time.monotonic() - started,
+        )
+        return response
 
     async def _extension(self, name, p):
         if name == "x_discover_conversations":

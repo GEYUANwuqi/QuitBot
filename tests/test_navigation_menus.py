@@ -77,6 +77,7 @@ def test_recent_menu_rejects_duplicate_names_before_context_activation():
         open_session=lambda name: calls.append(name),
         profile=lambda *args: calls.append(args),
         find=lambda *_: pane,
+        contact_name=lambda _: "测试群",
         walk=lambda root: (
             [row1, row2]
             if root is pane

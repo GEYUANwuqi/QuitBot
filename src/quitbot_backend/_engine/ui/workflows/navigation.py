@@ -195,11 +195,7 @@ class NavigationUI:
             x
             for x in self.b.walk(pane)
             if "recent-contact-item" in x.ClassName.split()
-            and next(
-                (c.Name for c in self.b.walk(x) if c.ControlTypeName == "TextControl"),
-                None,
-            )
-            == target.name
+            and self.b.contact_name(x) == target.name
         ]
         if len(rows) != 1:
             raise TargetMismatch("Recent conversation is missing or ambiguous")

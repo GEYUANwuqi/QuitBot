@@ -303,24 +303,12 @@ class QQClient:
 
     def recent_contacts(self) -> list[str]:
         """Loaded recent session titles, not the complete QQ address book."""
+        from .ui.workflows.recent import RecentConversations
+
         with ui_transaction():
             self.backend.check_thread()
             self.backend.navigate("消息")
-            pane = self.backend.find(
-                self.backend.window,
-                lambda c: c.Name == "会话列表" and c.ControlTypeName == "PaneControl",
-            )
-            names = []
-            for row in self.backend.walk(pane):
-                if "recent-contact-item" in row.ClassName.split():
-                    first = self.backend.find(
-                        row,
-                        lambda c: c.ControlTypeName == "TextControl",
-                        required=False,
-                    )
-                    if first:
-                        names.append(first.Name)
-            return names
+            return [name for name, _ in RecentConversations(self.backend).rows()]
 
     def group_members(self, key: str | Target) -> list[str]:
         target = self.target(key)
@@ -424,14 +412,17 @@ class QQClient:
                     if "q-collapse-item__header" in classes:
                         group = item.Name
                     elif "contact-item" in classes:
+                        name = b.contact_name(item)
                         texts = [
                             c.Name
                             for c in b.walk(item)
                             if c.ControlTypeName == "TextControl" and c.Name
                         ]
-                        if texts:
+                        if name:
                             result.append(
-                                ContactEntry(texts[0], group, "".join(texts[1:]), kind)
+                                ContactEntry(
+                                    name, group, "".join(texts).removeprefix(name), kind
+                                )
                             )
                 return result
             finally:

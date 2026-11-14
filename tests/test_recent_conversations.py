@@ -11,7 +11,7 @@ from quitbot_backend._engine.ui.workflows.recent import RecentConversations
 
 
 def control(kind="GroupControl", name="", cls="", children=(), focus=False):
-    return SimpleNamespace(
+    node = SimpleNamespace(
         ControlTypeName=kind,
         Name=name,
         ClassName=cls,
@@ -20,6 +20,23 @@ def control(kind="GroupControl", name="", cls="", children=(), focus=False):
         children=list(children),
         ProcessId=10,
         NativeWindowHandle=0,
+    )
+    node.GetChildren = lambda: node.children
+    return node
+
+
+def name_info(parts, cls="item__info"):
+    return control(
+        cls=cls,
+        children=(
+            *(control("TextControl", part) for part in parts),
+            control(cls="secondary-info", children=(control("TextControl", "12:30"),)),
+            control(
+                cls="summary-main",
+                children=(control("TextControl", "预览中的名字与正文"),),
+            ),
+            control(cls="q-badge-num", children=(control("TextControl", "99+"),)),
+        ),
     )
 
 
@@ -275,3 +292,63 @@ def test_open_session_waits_for_remounted_header_without_replaying_selection(rec
     b.invoke = lambda _: (calls.append("select"), pending.append(1))
     b.open_session("fixture group")
     assert calls == ["select"] and b.header() is header
+
+
+@pytest.mark.parametrize(
+    "parts",
+    [
+        ("🧪", "测试群", "👩🏽‍💻"),
+        ("🧪测试群👩🏽‍💻",),
+        ("🧪", "测试", "群", "👩", "🏽", "\u200d", "💻"),
+    ],
+)
+def test_complete_name_is_shared_by_discovery_resolution_and_recent_menu(recent_ui, parts):
+    from quitbot_backend._engine.client import QQClient
+    from quitbot_backend._engine.ui.workflows.navigation import NavigationUI
+
+    recent, _, calls, row, pane, _, _ = recent_ui
+    name = "🧪测试群👩🏽‍💻"
+    row.children[0] = name_info(parts)
+    other = control(cls="recent-contact-item", children=(name_info(("🧪", "其他测试群")),))
+    pane.children.append(other)
+    # The title's aggregate name excludes its separately exposed member count.
+    recent.b.main_window.children.append(
+        control("ButtonControl", name, "chat-header__contact-name", (control("TextControl", "(5)"),))
+    )
+    found = recent.discover()
+    assert [(item.name, item.selectable) for item in found] == [
+        (name, True), ("🧪其他测试群", True)
+    ]
+    client = QQClient.__new__(QQClient)
+    client.backend = recent.b
+    assert client.recent_contacts() == [name, "🧪其他测试群"]
+    navigation = NavigationUI.__new__(NavigationUI)
+    navigation.b = recent.b
+    assert navigation._recent_row(Target("20001", name)) is row
+    with pytest.raises(ControlUnavailable):
+        recent.row("🧪")
+    assert calls == []
+    assert recent.resolve(name) == Target("20001", name, "group")
+    assert calls.count("复制群号") == 1
+
+
+@pytest.mark.parametrize("cls", ["item__info", "list-item__info"])
+def test_name_scope_excludes_preview_and_preserves_unicode(recent_ui, cls):
+    recent, _, _, row, _, _, _ = recent_ui
+    row.children[0] = name_info(("  🧪", "测试群", " ❤️  "), cls)
+    assert recent.b.contact_name(row) == "  🧪测试群 ❤️  "
+    row.children[0] = name_info((), cls)
+    assert recent.b.contact_name(row) == ""
+
+
+def test_duplicate_complete_names_are_rejected_across_different_fragmentation(recent_ui):
+    recent, _, calls, row, pane, _, _ = recent_ui
+    row.children[0] = name_info(("🧪", "测试群"))
+    pane.children.append(
+        control(cls="recent-contact-item", children=(name_info(("🧪测试群",)),))
+    )
+    found = recent.discover()
+    assert len(found) == 1 and found[0].name == "🧪测试群" and not found[0].selectable
+    with pytest.raises(TargetMismatch, match="同名"):
+        recent.b.open_session("🧪测试群")
+    assert calls == []

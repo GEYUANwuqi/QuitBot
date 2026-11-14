@@ -318,6 +318,26 @@ class DesktopBackend:
     def editor(self):
         return self.by_class("ExEditor-qq-msg-editor")
 
+    def contact_name(self, row):
+        """Join QQ's name fragments without the preview, time or unread badge."""
+        info = self.find(
+            row,
+            lambda c: bool(
+                {"item__info", "list-item__info"} & set(c.ClassName.split())
+            ),
+            required=False,
+        )
+        if info is not None:
+            return "".join(
+                child.Name
+                for child in info.GetChildren()
+                if child.ControlTypeName == "TextControl"
+            )
+        title = self.find(
+            row, lambda c: c.ControlTypeName == "TextControl", required=False
+        )
+        return title.Name if title is not None else ""
+
     def focus_editor(self):
         # QQ can replace the accessibility element as a conversation's editor
         # gains focus. Re-read that unique composer instead of waiting on the
@@ -366,6 +386,8 @@ class DesktopBackend:
         self.auto.type_text(editor, text)
 
     def open_session(self, name):
+        from .workflows.recent import RecentConversations
+
         self.check_thread()
         self.navigate("消息")
         header = self.find(
@@ -375,26 +397,7 @@ class DesktopBackend:
         )
         if header is not None and header.Name == name:
             return
-        sessions = self.find(
-            self.window,
-            lambda c: c.Name == "会话列表" and c.ControlTypeName == "PaneControl",
-        )
-        matches = []
-        for c in self.walk(sessions):
-            if "recent-contact-item" not in c.ClassName.split():
-                continue
-            title = self.find(
-                c, lambda n: n.ControlTypeName == "TextControl", required=False
-            )
-            if title and title.Name == name:
-                matches.append(c)
-        if len(matches) > 1:
-            raise TargetMismatch(f"More than one recent session named {name!r}")
-        if not matches:
-            raise ControlUnavailable(
-                f"Expected one loaded session named {name!r}, found {len(matches)}; open it once in QQ"
-            )
-        self.invoke(matches[0])
+        self.invoke(RecentConversations(self).row(name))
 
         def loaded_header():
             current = self.find(
@@ -534,12 +537,7 @@ class DesktopBackend:
             rows = wait_until(loaded_rows, timeout=3)
             matches = []
             for control in rows:
-                first = self.find(
-                    control,
-                    lambda c: c.ControlTypeName == "TextControl",
-                    required=False,
-                )
-                if first is not None and first.Name == target.name:
+                if self.contact_name(control) == target.name:
                     matches.append(control)
             if not matches:
                 # QQ virtualizes large address books and remembers their scroll
@@ -559,12 +557,7 @@ class DesktopBackend:
                     for control in self.walk(pane):
                         if "contact-item" not in control.ClassName.split():
                             continue
-                        first = self.find(
-                            control,
-                            lambda c: c.ControlTypeName == "TextControl",
-                            required=False,
-                        )
-                        if first is not None and first.Name == target.name:
+                        if self.contact_name(control) == target.name:
                             matches.append(control)
                     if matches:
                         break

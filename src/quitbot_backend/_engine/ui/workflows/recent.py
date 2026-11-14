@@ -26,11 +26,9 @@ class RecentConversations:
         for row in self.b.walk(pane):
             if "recent-contact-item" not in row.ClassName.split():
                 continue
-            title = self.b.find(
-                row, lambda c: c.ControlTypeName == "TextControl", False
-            )
-            if title is not None and title.Name:
-                result.append((title.Name, row))
+            name = self.b.contact_name(row)
+            if name:
+                result.append((name, row))
         return result
 
     def row(self, name):

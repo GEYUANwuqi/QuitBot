@@ -8,6 +8,8 @@ ROLE_TYPES = {
     "static": "TextControl",
     "image": "ImageControl",
     "push button": "ButtonControl",
+    "button": "ButtonControl",
+    "push button menu": "ButtonControl",
     "toggle button": "ButtonControl",
     "section": "GroupControl",
     "panel": "GroupControl",

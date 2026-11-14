@@ -16,8 +16,15 @@ def snapshot():
     return json.loads(FIXTURE.read_text(encoding="utf-8"))
 
 
-def test_atspi_messages_keep_identity_and_multiline_semantics():
-    root = ADAPTER.normalize_chat(snapshot(), "测试群")
+@pytest.mark.parametrize("button_role", ["push button", "button"])
+def test_atspi_messages_keep_identity_and_multiline_semantics(button_role):
+    data = snapshot()
+    for node in data["nodes"]:
+        if node["role"] == "push button":
+            node["role"] = button_role
+    root = ADAPTER.normalize_chat(data, "测试群")
+    header = next(n for n in root.walk() if n.has_class("chat-header__contact-name"))
+    assert header.type == "ButtonControl"
     messages = parse_messages(root, "20001")
     assert [m.text for m in messages] == ["相同文本", "相同文本", "第一行\n第二行🙂"]
     assert len({m.id for m in messages}) == 3

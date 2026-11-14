@@ -14,7 +14,6 @@ gi.require_version("Atspi", "2.0")
 from gi.repository import Atspi, GLib
 
 from ...errors import ControlTreeChanged, ControlUnavailable, FocusLost
-from .snapshot import ROLE_TYPES
 from .x11 import Desktop
 
 PATTERNS = (
@@ -30,39 +29,51 @@ PATTERNS = (
     "Transform",
     "Text",
 )
+# AT-SPI 2.56 renamed "push button" to "button". The numeric role stays
+# unchanged; PUSH_BUTTON remains an alias in newer libraries.
 TYPES = {
-    **ROLE_TYPES,
-    "embedded": "PaneControl",
-    "scroll pane": "PaneControl",
-    "text": "EditControl",
-    "password text": "EditControl",
-    "label": "TextControl",
-    "check box": "CheckBoxControl",
-    "radio button": "RadioButtonControl",
-    "menu": "MenuControl",
-    "popup menu": "MenuControl",
-    "menu item": "MenuItemControl",
-    "check menu item": "MenuItemControl",
-    "radio menu item": "MenuItemControl",
-    "list": "ListControl",
-    "list item": "ListItemControl",
-    "table": "TableControl",
-    "table cell": "DataItemControl",
-    "page tab": "TabItemControl",
-    "page tab list": "TabControl",
-    "combo box": "ComboBoxControl",
-    "slider": "SliderControl",
-    "tool bar": "ToolBarControl",
-    "separator": "SeparatorControl",
-    "dialog": "WindowControl",
-    "window": "WindowControl",
-    "document web": "DocumentControl",
-    "document frame": "DocumentControl",
-    "tree": "TreeControl",
-    "tree item": "TreeItemControl",
-    "scroll bar": "ScrollBarControl",
-    "link": "HyperlinkControl",
+    Atspi.Role.STATIC: "TextControl",
+    Atspi.Role.IMAGE: "ImageControl",
+    Atspi.Role.PUSH_BUTTON: "ButtonControl",
+    Atspi.Role.TOGGLE_BUTTON: "ButtonControl",
+    Atspi.Role.SECTION: "GroupControl",
+    Atspi.Role.PANEL: "GroupControl",
+    Atspi.Role.PARAGRAPH: "GroupControl",
+    Atspi.Role.ENTRY: "EditControl",
+    Atspi.Role.FRAME: "WindowControl",
+    Atspi.Role.EMBEDDED: "PaneControl",
+    Atspi.Role.SCROLL_PANE: "PaneControl",
+    Atspi.Role.TEXT: "EditControl",
+    Atspi.Role.PASSWORD_TEXT: "EditControl",
+    Atspi.Role.LABEL: "TextControl",
+    Atspi.Role.CHECK_BOX: "CheckBoxControl",
+    Atspi.Role.RADIO_BUTTON: "RadioButtonControl",
+    Atspi.Role.MENU: "MenuControl",
+    Atspi.Role.POPUP_MENU: "MenuControl",
+    Atspi.Role.MENU_ITEM: "MenuItemControl",
+    Atspi.Role.CHECK_MENU_ITEM: "MenuItemControl",
+    Atspi.Role.RADIO_MENU_ITEM: "MenuItemControl",
+    Atspi.Role.LIST: "ListControl",
+    Atspi.Role.LIST_ITEM: "ListItemControl",
+    Atspi.Role.TABLE: "TableControl",
+    Atspi.Role.TABLE_CELL: "DataItemControl",
+    Atspi.Role.PAGE_TAB: "TabItemControl",
+    Atspi.Role.PAGE_TAB_LIST: "TabControl",
+    Atspi.Role.COMBO_BOX: "ComboBoxControl",
+    Atspi.Role.SLIDER: "SliderControl",
+    Atspi.Role.TOOL_BAR: "ToolBarControl",
+    Atspi.Role.SEPARATOR: "SeparatorControl",
+    Atspi.Role.DIALOG: "WindowControl",
+    Atspi.Role.WINDOW: "WindowControl",
+    Atspi.Role.DOCUMENT_WEB: "DocumentControl",
+    Atspi.Role.DOCUMENT_FRAME: "DocumentControl",
+    Atspi.Role.TREE: "TreeControl",
+    Atspi.Role.TREE_ITEM: "TreeItemControl",
+    Atspi.Role.SCROLL_BAR: "ScrollBarControl",
+    Atspi.Role.LINK: "HyperlinkControl",
 }
+if hasattr(Atspi.Role, "PUSH_BUTTON_MENU"):
+    TYPES[Atspi.Role.PUSH_BUTTON_MENU] = "ButtonControl"
 
 
 @dataclass(frozen=True)
@@ -113,7 +124,7 @@ class Control:
 
     @property
     def ControlTypeName(self):
-        return TYPES.get(self.obj.get_role_name(), "GroupControl")
+        return TYPES.get(self.obj.get_role(), "GroupControl")
 
     @property
     def ProcessId(self):
@@ -160,7 +171,9 @@ class Control:
 
     def GetParentControl(self):
         parent = self.obj.get_parent()
-        if parent is None or parent.get_role_name() in ("application", "desktop frame"):
+        if parent is None or parent.get_role() in (
+            Atspi.Role.APPLICATION, Atspi.Role.DESKTOP_FRAME
+        ):
             return None
         return self.auto.wrap(parent)
 
@@ -170,9 +183,9 @@ class Control:
             if current.native:
                 return current
             parent = current.obj.get_parent()
-            if parent is None or parent.get_role_name() in (
-                "application",
-                "desktop frame",
+            if parent is None or parent.get_role() in (
+                Atspi.Role.APPLICATION,
+                Atspi.Role.DESKTOP_FRAME,
             ):
                 return self.auto.wrap(current.obj, require_window=True)
             current = Control(self.auto, parent)
@@ -291,7 +304,7 @@ class Control:
             "Value": "EditableText" in interfaces
             or ("Text" in interfaces and self.state("EDITABLE")),
             "Toggle": self.state("CHECKABLE")
-            or self.obj.get_role_name() == "toggle button",
+            or self.obj.get_role() == Atspi.Role.TOGGLE_BUTTON,
             "SelectionItem": self.state("SELECTABLE") or "select" in actions,
             "ExpandCollapse": self.state("EXPANDABLE"),
             "ScrollItem": "Component" in interfaces,
@@ -303,7 +316,7 @@ class Control:
         if pattern == "Scroll":
             for item, _ in self.auto.WalkControl(self, maxDepth=3):
                 if (
-                    item.obj.get_role_name() == "scroll bar"
+                    item.obj.get_role() == Atspi.Role.SCROLL_BAR
                     and item.state("VERTICAL")
                     and "Value" in item.obj.get_interfaces()
                 ):
@@ -494,7 +507,9 @@ class Automation:
             app.clear_cache()
             for child in range(app.get_child_count()):
                 frame = app.get_child_at_index(child)
-                if frame.get_role_name() not in ("frame", "dialog", "window"):
+                if frame.get_role() not in (
+                    Atspi.Role.FRAME, Atspi.Role.DIALOG, Atspi.Role.WINDOW
+                ):
                     continue
                 control = self.wrap(frame, windows=windows)
                 if control.native and (
@@ -507,7 +522,7 @@ class Automation:
 
     def wrap(self, obj, *, windows=None, require_window=False):
         control = Control(self, obj)
-        if obj.get_role_name() in ("frame", "dialog", "window"):
+        if obj.get_role() in (Atspi.Role.FRAME, Atspi.Role.DIALOG, Atspi.Role.WINDOW):
             rect = control.BoundingRectangle
             bounds = (rect.left, rect.top, rect.width(), rect.height())
             matches = [
@@ -707,26 +722,26 @@ class Automation:
                 return None
             documents, dialogs, menus = [], [], []
             for item, depth in self.WalkControl(control, maxDepth=35):
-                role = item.obj.get_role_name()
+                role = item.obj.get_role()
                 if (
                     role
                     not in (
-                        "document web",
-                        "document frame",
-                        "dialog",
-                        "menu",
-                        "popup menu",
+                        Atspi.Role.DOCUMENT_WEB,
+                        Atspi.Role.DOCUMENT_FRAME,
+                        Atspi.Role.DIALOG,
+                        Atspi.Role.MENU,
+                        Atspi.Role.POPUP_MENU,
                     )
                     or item.IsOffscreen
                 ):
                     continue
                 rect = item.BoundingRectangle
                 if rect.left <= x < rect.right and rect.top <= y < rect.bottom:
-                    if role in ("menu", "popup menu"):
+                    if role in (Atspi.Role.MENU, Atspi.Role.POPUP_MENU):
                         menus.append(item)
-                    elif role == "dialog" and item.state("MODAL"):
+                    elif role == Atspi.Role.DIALOG and item.state("MODAL"):
                         dialogs.append(item)
-                    elif role in ("document web", "document frame"):
+                    elif role in (Atspi.Role.DOCUMENT_WEB, Atspi.Role.DOCUMENT_FRAME):
                         documents.append((depth, item))
             # Absolute-positioned modal panels can extend beyond their parent's
             # bounds. Chromium's document hit test may otherwise pick a message

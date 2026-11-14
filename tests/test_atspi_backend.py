@@ -1,5 +1,6 @@
 """Native provider boundaries; synthetic controls and no running QQ required."""
 
+from contextlib import nullcontext
 from types import SimpleNamespace
 
 import pytest
@@ -7,6 +8,7 @@ import pytest
 pytest.importorskip("gi")
 from quitbot_backend._engine.errors import ControlUnavailable, FocusLost
 from quitbot_backend._engine.platforms.linux.automation import (
+    Atspi,
     Automation,
     Control,
     Rectangle,
@@ -35,6 +37,13 @@ class Accessible:
     def get_role_name(self):
         return self.role
 
+    def get_role(self):
+        name = "push button" if self.role == "button" else self.role
+        return getattr(Atspi.Role, name.upper().replace(" ", "_"), Atspi.Role.UNKNOWN)
+
+    def get_attributes(self):
+        return {}
+
     def get_interfaces(self):
         return ["Accessible", "Action", "Component", "Text"]
 
@@ -58,6 +67,44 @@ class Accessible:
 
     def get_name(self):
         return "fixture"
+
+
+@pytest.mark.parametrize("role_name", ["push button", "button"])
+def test_discovery_and_binding_accept_button_role_across_atspi_versions(monkeypatch, role_name):
+    from quitbot_backend._engine import discovery, platforms
+    from quitbot_backend._engine.ui.backend import DesktopBackend
+
+    auto = Automation.__new__(Automation)
+    auto.pump = lambda: None
+    avatar = Accessible(role=role_name, states=("enabled", "sensitive"), actions=("press",))
+    avatar.get_name = lambda: "测试账号的头像"
+    avatar.get_attributes = lambda: {"class": "user-avatar"}
+    frame = Accessible(role="frame", children=(avatar,))
+    frame.path = "/fixture/frame"
+    frame.get_name = lambda: "QQ"
+    window = Control(auto, frame, Window(42, 321, "QQ", "qq QQ", (0, 0, 800, 600), True))
+    auto.frames = lambda: [window]
+    monkeypatch.setattr(platforms, "automation", lambda: auto)
+    monkeypatch.setattr(discovery, "ui_transaction", nullcontext)
+
+    found = discovery.discover_windows(hwnd=42)
+    assert found == [discovery.QQWindow(42, 321, "测试账号")]
+    backend = DesktopBackend(found[0].nickname, found[0].hwnd)
+    button = backend.find(window, lambda c: "user-avatar" in c.ClassName.split())
+    assert button.ControlTypeName == "ButtonControl"
+    calls = []
+    monkeypatch.setattr(button, "GetTopLevelControl", lambda: window)
+    monkeypatch.setattr(Atspi.Action, "do_action", lambda obj, index: calls.append((obj, index)) or True)
+    backend.invoke(button)
+    assert calls == [(avatar, 0)]
+
+
+def test_control_type_uses_native_role_without_guessing_from_actions():
+    # A provider's display name cannot override the native role, even when the
+    # object offers an action with the same name as a button's default action.
+    obj = Accessible(role="section", actions=("press",))
+    obj.get_role_name = lambda: "push button"
+    assert Control(None, obj).ControlTypeName == "GroupControl"
 
 
 def test_cursor_already_at_destination_does_not_wait_for_a_motion_event():
@@ -238,7 +285,7 @@ def test_modal_hit_testing_precedes_underlying_embedded_messages(monkeypatch, pa
 
     def surface(role, identity):
         return SimpleNamespace(
-            obj=SimpleNamespace(get_role_name=lambda: role),
+            obj=SimpleNamespace(get_role=lambda: getattr(Atspi.Role, role.upper().replace(" ", "_"))),
             IsOffscreen=False,
             BoundingRectangle=Rectangle(0, 0, 100, 100),
             state=lambda name: name == "MODAL",

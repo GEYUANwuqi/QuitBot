@@ -19,8 +19,9 @@ import ConversationDiscovery from "./ConversationDiscovery";
 type Account = components["schemas"]["AccountConfig"];
 type ConfigView = components["schemas"]["ConfigView"];
 type Config = components["schemas"]["ServiceConfig"];
-type Listener = components["schemas"]["ListenerConfig"];
+type Listener = Pick<components["schemas"]["HTTPConfig"], "enabled" | "host" | "port">;
 type Reverse = components["schemas"]["ReverseWSConfig"];
+type Forward = components["schemas"]["ForwardWSConfig"];
 type Channel = "http" | "forward_ws" | "reverse_ws";
 export type AccountAction =
   | "x_connect"
@@ -39,7 +40,7 @@ const channels = [
     id: "forward_ws",
     name: "正向 WebSocket",
     icon: Cable,
-    detail: "应用连接此账号，调用接口并接收事件。",
+    detail: "可添加多个端口，分别选择消息格式；每个端口支持多个应用。",
   },
   {
     id: "reverse_ws",
@@ -84,7 +85,7 @@ export default function AccountSettings({
 }) {
   const [selected, setSelected] = useState(activeAccountId || "");
   const [picker, setPicker] = useState(false);
-  const [editing, setEditing] = useState<Channel>();
+  const [editing, setEditing] = useState<{ type: Channel; index?: number }>();
   const [discovering, setDiscovering] = useState(false);
   useEffect(() => {
     if (activeAccountId) setSelected(activeAccountId);
@@ -120,9 +121,14 @@ export default function AccountSettings({
     );
   const edit = (patch: Partial<Account>) => onEdit(account.account_id, patch);
   const http = { ...listenerDefaults(6700), ...account.http };
-  const forward = { ...listenerDefaults(6701), ...account.forward_ws };
   const reverse = { ...reverseDefaults, ...account.reverse_ws };
-  const enabled = channels.filter((item) => account[item.id]?.enabled);
+  const connections = [
+    ...(http.enabled ? [{ ...channels[0], endpoint: http, index: undefined }] : []),
+    ...(account.forward_ws || []).map((endpoint, index) => ({
+      ...channels[1], endpoint: { ...listenerDefaults(6701), ...endpoint }, index,
+    })),
+    ...(reverse.enabled ? [{ ...channels[2], endpoint: reverse, index: undefined }] : []),
+  ];
   const hasChanges =
     JSON.stringify(account) !==
     JSON.stringify(
@@ -467,7 +473,7 @@ export default function AccountSettings({
               添加连接
             </button>
           </div>
-          {!enabled.length && (
+          {!connections.length && (
             <div className="network-empty">
               <Cable size={26} />
               <strong>尚未启用对外连接</strong>
@@ -475,36 +481,39 @@ export default function AccountSettings({
             </div>
           )}
           <div className="network-list">
-            {enabled.map((item) => (
+            {connections.map((item) => (
               <button
                 className="network-summary"
-                key={item.id}
+                key={`${item.id}:${item.index ?? "single"}`}
                 disabled={busy}
-                onClick={() => setEditing(item.id)}
+                onClick={() => setEditing({ type: item.id, index: item.index })}
               >
                 <span className="tile-icon purple">
                   <item.icon size={20} />
                 </span>
                 <span>
-                  <strong>{item.name}</strong>
+                  <strong>
+                    {item.name}
+                    {item.id === "forward_ws" && ` · ${item.endpoint.message_format || "array"}`}
+                  </strong>
                   <small className="mono">
                     {item.id === "reverse_ws"
-                      ? reverse.url
+                      ? item.endpoint.url
                       : address(
                           item.id === "http" ? "http" : "ws",
-                          item.id === "http" ? http : forward,
+                          item.endpoint,
                         )}
                   </small>
                 </span>
                 <Badge
                   tone={
-                    item.id === "reverse_ws" &&
-                    runtime?.reverse_ws?.state !== "connected"
+                    !item.endpoint.enabled || (item.id === "reverse_ws" &&
+                    runtime?.reverse_ws?.state !== "connected")
                       ? ""
                       : "success"
                   }
                 >
-                  {item.id === "reverse_ws"
+                  {!item.endpoint.enabled ? "已停用" : item.id === "reverse_ws"
                     ? reverseLabel(runtime?.reverse_ws)
                     : "已启用"}
                 </Badge>
@@ -527,7 +536,7 @@ export default function AccountSettings({
                 key={item.id}
                 onClick={() => {
                   setPicker(false);
-                  setEditing(item.id);
+                  setEditing({ type: item.id });
                 }}
               >
                 <span className="tile-icon purple">
@@ -536,7 +545,7 @@ export default function AccountSettings({
                 <strong>{item.name}</strong>
                 <span>{item.detail}</span>
                 <Badge>
-                  {account[item.id]?.enabled ? "编辑连接" : "添加连接"}
+                  {item.id !== "forward_ws" && account[item.id]?.enabled ? "编辑连接" : "添加连接"}
                 </Badge>
               </button>
             ))}
@@ -545,8 +554,9 @@ export default function AccountSettings({
       )}
       {editing && (
         <NetworkEditor
-          key={`${account.account_id}:${editing}`}
-          type={editing}
+          key={`${account.account_id}:${editing.type}:${editing.index ?? "new"}`}
+          type={editing.type}
+          index={editing.index}
           account={account}
           config={config}
           onClose={() => setEditing(undefined)}
@@ -558,6 +568,10 @@ export default function AccountSettings({
             edit(patch);
             setEditing(undefined);
           }}
+          onRemove={editing.type === "forward_ws" && editing.index !== undefined ? () => {
+            edit({ forward_ws: account.forward_ws?.filter((_, index) => index !== editing.index) });
+            setEditing(undefined);
+          } : undefined}
         />
       )}
     </div>
@@ -566,34 +580,39 @@ export default function AccountSettings({
 
 function NetworkEditor({
   type,
+  index,
   account,
   config,
   onClose,
   onBack,
   onSave,
+  onRemove,
 }: {
   type: Channel;
+  index?: number;
   account: Account;
   config: Config;
   onClose: () => void;
   onBack: () => void;
   onSave: (patch: Partial<Account>) => void;
+  onRemove?: () => void;
 }) {
   const used = new Set([
     config.webui?.port,
     ...config.accounts!.flatMap((item) =>
-      [item.http, item.forward_ws]
+      [item.http, ...(item.forward_ws || [])]
         .filter((endpoint) => endpoint?.enabled)
         .map((endpoint) => endpoint!.port),
     ),
   ]);
   let port = type === "http" ? 6700 : 6701;
   while (used.has(port) && port < 65535) port++;
-  const previous = type === "http" ? account.http : account.forward_ws;
+  const previous = type === "http" ? account.http
+    : type === "forward_ws" && index !== undefined ? account.forward_ws?.[index] : undefined;
   const [listener, setListener] = useState<Listener>(() => ({
     ...listenerDefaults(port),
     ...previous,
-    enabled: true,
+    enabled: type === "forward_ws" && index !== undefined ? previous?.enabled ?? true : true,
     ...(!previous?.enabled && used.has(previous?.port) ? { port } : {}),
   }));
   const [reverse, setReverse] = useState<Reverse>(() => ({
@@ -601,7 +620,11 @@ function NetworkEditor({
     ...account.reverse_ws,
     enabled: true,
   }));
-  const [accessToken, setAccessToken] = useState(account.forward_ws?.access_token || "");
+  const [accessToken, setAccessToken] = useState(previous?.access_token || "");
+  const [messageFormat, setMessageFormat] = useState<NonNullable<Forward["message_format"]>>(
+    type === "forward_ws" && index !== undefined
+      ? account.forward_ws?.[index]?.message_format || "array" : "array",
+  );
   const [error, setError] = useState("");
   const title = channels.find((item) => item.id === type)!.name;
   const isReverse = type === "reverse_ws";
@@ -618,16 +641,20 @@ function NetworkEditor({
             setError("请填写 ws:// 或 wss:// 接收地址");
             return;
           }
-          if (type === "forward_ws" && !/^[\x21-\x7e]*$/.test(accessToken)) {
+          if (!isReverse && !/^[\x21-\x7e]*$/.test(accessToken)) {
             setError("访问令牌请使用不含空格的 ASCII 字符");
             return;
           }
-          onSave(
-            isReverse ? { reverse_ws: reverse }
-              : type === "forward_ws"
-                ? { forward_ws: { ...listener, access_token: accessToken } }
-                : { http: listener },
-          );
+          if (type === "forward_ws") {
+            const endpoints = [...(account.forward_ws || [])];
+            const endpoint = { ...listener, access_token: accessToken, message_format: messageFormat };
+            if (index === undefined) endpoints.push(endpoint);
+            else endpoints[index] = endpoint;
+            onSave({ forward_ws: endpoints });
+          } else {
+            onSave(isReverse ? { reverse_ws: reverse }
+              : { http: { ...listener, access_token: accessToken } });
+          }
         }}
       >
         <label className="setting-switch">
@@ -743,6 +770,23 @@ function NetworkEditor({
           </div>
         )}
         {type === "forward_ws" && (
+          <div className="field">
+            <span>消息格式</span>
+            <Select
+              label="消息格式"
+              value={messageFormat}
+              onChange={(value) => setMessageFormat(value as "array" | "string")}
+              options={[
+                { value: "array", label: "array · 消息段数组" },
+                { value: "string", label: "string · CQ 字符串" },
+              ]}
+            />
+            <small className="settings-hint">
+              此端点的消息事件和 get_msg 结果使用所选格式，可添加其他端点供不同应用使用。
+            </small>
+          </div>
+        )}
+        {!isReverse && (
           <label className="field">
             访问令牌
             <input
@@ -751,11 +795,11 @@ function NetworkEditor({
               maxLength={4096}
               value={accessToken}
               onChange={(e) => setAccessToken(e.target.value)}
-              aria-describedby="forward-token-hint"
+              aria-describedby={`${type}-token-hint`}
             />
-            <small id="forward-token-hint" className="settings-hint">
-              填写后，应用使用此令牌连接本账号的正向 WS，控制台退出或会话到期后仍可使用。
-              留空则使用控制台登录会话。控制台和 HTTP 继续使用登录会话认证。
+            <small id={`${type}-token-hint`} className="settings-hint">
+              填写后，应用使用此令牌访问本账号的 {title}，重启后保持不变。
+              留空则使用控制台登录会话。HTTP 与正向 WS 分别认证，控制台仍使用登录会话。
             </small>
           </label>
         )}
@@ -764,7 +808,7 @@ function NetworkEditor({
             可填写本机 IP、主机名或 0.0.0.0。
             {type === "http"
               ? "HTTP 使用 /api/{action} 调用。"
-              : "正向 WS 使用 /ws 连接。"}
+              : "正向 WS 使用 /ws 连接，可同时接入多个客户端；每个连接独立接收事件和回执。"}
           </p>
         )}
         {error && (
@@ -773,6 +817,11 @@ function NetworkEditor({
           </p>
         )}
         <div className="modal-actions">
+          {onRemove && (
+            <button type="button" className="danger" onClick={onRemove}>
+              <Trash2 size={15} /> 删除此连接
+            </button>
+          )}
           <button type="button" onClick={onBack}>
             <ArrowLeft size={15} />
             连接方式

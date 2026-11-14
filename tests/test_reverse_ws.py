@@ -109,7 +109,7 @@ def test_forward_and_reverse_share_actions_and_isolate_accounts(tmp_path):
                     )
                 )
                 assert (await packet(first))["data"]["message_id"] > 0
-                forward_url = f"ws://127.0.0.1:{config.accounts[0].forward_ws.port}/ws"
+                forward_url = f"ws://127.0.0.1:{config.accounts[0].forward_ws[0].port}/ws"
                 async with connect(
                     forward_url,
                     additional_headers={"Authorization": "Bearer " + token},

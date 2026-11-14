@@ -18427,9 +18427,16 @@
     "securitySchemes": {
       "HTTPBearer": {
         "type": "http",
+        "description": "使用账号的 http.access_token；留空时使用控制台登录会话",
         "scheme": "bearer"
       }
     }
+  },
+  "x-http-authentication": {
+    "header": "Authorization: Bearer <access_token>",
+    "accessTokenConfiguration": "accounts[].http.access_token",
+    "configuredToken": "Only the configured token is accepted; no session expiry. Applies only to this account's HTTP API, not WS or console routes.",
+    "sessionFallback": "Use a console login session when http.access_token is empty (default)"
   },
   "x-websocket": {
     "url": "/ws",
@@ -18442,16 +18449,30 @@
           "access_token": "<access_token>"
         }
       },
-      "accessTokenConfiguration": "accounts[].forward_ws.access_token",
-      "configuredToken": "Only the configured token is accepted; no session expiry. Applies only to this account's forward WS, not HTTP or console routes.",
+      "accessTokenConfiguration": "accounts[].forward_ws[].access_token",
+      "configuredToken": "Only this listener's configured token is accepted; no session expiry. Other listeners, HTTP and console routes authenticate independently.",
       "firstFrameResult": "Configured token: {authenticated: true}; console session: {expires_at, must_change_password}",
       "sessionFallback": {
-        "when": "forward_ws.access_token is empty (default)",
+        "when": "The listener's access_token is empty (default)",
         "login": "Obtain a session from the console service; change the initial password before account access",
         "durationConfiguration": "webui.session_hours",
         "defaultDurationSeconds": 14400,
         "sliding": false
       }
+    },
+    "messageFormat": {
+      "configuration": "accounts[].forward_ws[].message_format",
+      "values": [
+        "array",
+        "string"
+      ],
+      "default": "array",
+      "fields": [
+        "message events: message",
+        "get_msg responses: data.message"
+      ],
+      "string": "OneBot v11 CQ string, with escaped text and parameter values",
+      "console": "Always array; HTTP and reverse WS also retain array output"
     },
     "request": {
       "action": "operationId",

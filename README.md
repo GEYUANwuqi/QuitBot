@@ -71,7 +71,7 @@ uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /o
 接入方式分别配置，可同时启用：
 
 - **HTTP**：应用请求账号的 `/api/{action}` 接口。
-- **正向 WS**：应用连接账号的 `/ws` 地址，调用接口并接收事件。
+- **正向 WS**：同一账号可添加多个端口，各自选择 `array` 消息段或 `string` CQ 字符串格式，供不同应用连接 `/ws`。
 - **反向 WS**：QuitBot 主动连接应用的接收地址，断线后自动重连。
 
 控制台使用同源的账号专用 WS 通道，独立于上述对外连接；新连接账号默认不开启对外端口。
@@ -97,7 +97,7 @@ uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /o
 
 ## API
 
-账号服务提供以下入口，WS 与 HTTP 共用参数和返回类型：
+账号服务提供以下入口，WS 与 HTTP 共用动作契约，正向 WS 可另选消息输出格式：
 
 | 入口 | 用途 |
 | --- | --- |
@@ -107,7 +107,7 @@ uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /o
 | HTTP `/openapi.json` | OpenAPI 3.1 文档 |
 | WS 动作 `x_get_api_catalog` | 动作清单、参数与返回值的 JSON Schema |
 
-WebUI、正向 WS 和 HTTP 的监听地址与端口均可自定义，默认使用本机回环地址。正向 WS 可设置账号独立的访问令牌，留空时使用控制台登录会话；WebUI 与账号 HTTP 使用登录会话认证。反向 WS 连接配置的 `ws://` / `wss://` 接收地址。写操作超时或断线后，应先查询实际结果，再决定是否重试。请求格式、认证流程及错误处理见[接口调用](docs/api.md)。
+WebUI、正向 WS 和 HTTP 的监听地址与端口均可自定义，默认使用本机回环地址。HTTP 和每个正向 WS 端点可分别设置独立访问令牌，随配置保存，重启后保持不变；留空时使用控制台登录会话。WebUI 使用登录会话认证。反向 WS 连接配置的 `ws://` / `wss://` 接收地址。写操作超时或断线后，应先查询实际结果，再决定是否重试。请求格式、认证流程及错误处理见[接口调用](docs/api.md)。
 
 后端源码位于 `src/quitbot_backend/`，前端位于 `frontend/`，协议文件位于 `protocol/`。结构与运行机制见[架构说明](docs/architecture.md)。
 

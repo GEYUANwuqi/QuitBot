@@ -15,7 +15,7 @@ from pydantic import ValidationError
 
 from .app import create_app
 from .auth import AccessKeys
-from .config import AccountConfig, ConfigStore, ServiceConfig
+from .config import AccountConfig, ConfigStore, ForwardWSConfig, ServiceConfig
 from .discovery import (
     DiscoveredWindow,
     DiscoveryView,
@@ -83,7 +83,7 @@ def server_for(app, host: str, port: int, *, lifespan="auto") -> uvicorn.Server:
     return server
 
 
-def transport_app(app, *, http: bool, ws: bool):
+def transport_app(app, *, http: bool, ws: ForwardWSConfig | None):
     """Expose only the transport enabled on this listener's address."""
 
     async def endpoint(scope, receive, send):
@@ -94,6 +94,10 @@ def transport_app(app, *, http: bool, ws: bool):
                 scope, receive, send
             )
         else:
+            if scope["type"] == "websocket":
+                # Listener-owned metadata; never choose authentication or output
+                # format from a client's Host header or query parameters.
+                scope = {**scope, "quitbot.forward_ws": ws}
             await app(scope, receive, send)
 
     return endpoint
@@ -289,7 +293,7 @@ class Service:
         if any(
             endpoint.enabled and endpoint.port == self.management_port
             for account in config.accounts
-            for endpoint in (account.http, account.forward_ws)
+            for endpoint in (account.http, *account.forward_ws)
         ):
             raise ValueError("账号端口不能与管理服务端口相同")
 
@@ -340,17 +344,20 @@ class Service:
         lifespan = AsyncExitStack()
         listeners = []
         try:
-            # One runtime lifecycle, even with two listeners or reverse WS only.
-            endpoints = {}
-            for name, endpoint in (("http", config.http), ("ws", config.forward_ws)):
-                if endpoint.enabled:
-                    endpoints.setdefault((endpoint.host, endpoint.port), set()).add(
-                        name
-                    )
-            for (host, port), roles in endpoints.items():
+            # Every endpoint shares this account's runtime and event source.
+            endpoints = {
+                (endpoint.host, endpoint.port): {"http": False, "ws": endpoint}
+                for endpoint in config.forward_ws
+                if endpoint.enabled
+            }
+            if config.http.enabled:
+                endpoints.setdefault(
+                    (config.http.host, config.http.port), {"ws": None}
+                )["http"] = True
+            for (host, port), transports in endpoints.items():
                 listener = bound_socket(host, port)
                 server = server_for(
-                    transport_app(app, http="http" in roles, ws="ws" in roles),
+                    transport_app(app, **transports),
                     host,
                     port,
                     lifespan="off",
@@ -408,7 +415,11 @@ class Service:
                     (
                         endpoint.access_token
                         for account in config.accounts
-                        for endpoint in (account.forward_ws, account.reverse_ws)
+                        for endpoint in (
+                            account.http,
+                            *account.forward_ws,
+                            account.reverse_ws,
+                        )
                     ),
                 )
             except OSError as error:

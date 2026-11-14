@@ -20,8 +20,9 @@ from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from . import __version__
-from .auth import AccessKeys, authenticate_socket, guard_session
-from .config import AccountConfig
+from ._engine.domain.onebot import format_message_packet
+from .auth import AccessKeys, authenticate_socket, guard_session, token_matches
+from .config import AccountConfig, ForwardWSConfig
 from .contracts import ACTIONS, Reply
 from .diagnostics import instrument_app, log_reply
 from .reverse_ws import ReverseWebSocket
@@ -62,7 +63,13 @@ def create_app(
 
     def require_access(
         credentials: Annotated[
-            HTTPAuthorizationCredentials | None, Security(HTTPBearer(auto_error=False))
+            HTTPAuthorizationCredentials | None,
+            Security(
+                HTTPBearer(
+                    auto_error=False,
+                    description="使用账号的 http.access_token；留空时使用控制台登录会话",
+                )
+            ),
         ],
     ):
         if credentials is None:
@@ -71,7 +78,13 @@ def create_app(
                 "Access credential required",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        access.session(credentials.credentials)
+        if config.http.access_token:
+            if not token_matches(credentials.credentials, config.http.access_token):
+                raise HTTPException(
+                    401, "HTTP 访问令牌无效", headers={"WWW-Authenticate": "Bearer"}
+                )
+        else:
+            access.session(credentials.credentials)
 
     app = FastAPI(
         title="QuitBot Account API",
@@ -141,7 +154,9 @@ def create_app(
     for action in ACTIONS.values():
         register(action)
 
-    async def websocket(socket: WebSocket, *, access_token: str | None = None):
+    async def websocket(
+        socket: WebSocket, *, access_token: str | None = None, message_format="array"
+    ):
         if not origin_allowed(socket.headers.get("origin"), socket.headers.get("host")):
             await socket.close(code=1008)
             return
@@ -153,12 +168,14 @@ def create_app(
         queue = runtime.subscribe() if events else None
         send_lock = asyncio.Lock()
 
-        async def send(value):
+        async def send(value, *, action=None):
             async with send_lock:
                 if access_token is None and not access.valid(token):
                     await socket.close(4401, "Access credential revoked")
                     return
-                await socket.send_json(value)
+                await socket.send_json(
+                    format_message_packet(value, message_format, action=action)
+                )
 
         async def publish_events():
             while True:
@@ -186,7 +203,8 @@ def create_app(
         sender = asyncio.create_task(publish_events()) if events else None
         watcher = (
             asyncio.create_task(guard_session(socket, access, lambda: token))
-            if access_token is None else None
+            if access_token is None
+            else None
         )
         try:
             while True:
@@ -222,7 +240,10 @@ def create_app(
                         }
                     )
                     continue
-                await send(await runtime.handle(request))
+                await send(
+                    await runtime.handle(request),
+                    action=request.get("action") if isinstance(request, dict) else None,
+                )
         except (WebSocketDisconnect, RuntimeError):
             pass
         finally:
@@ -236,15 +257,31 @@ def create_app(
                 await asyncio.gather(sender, return_exceptions=True)
 
     async def forward_websocket(socket: WebSocket):
-        await websocket(socket, access_token=config.forward_ws.access_token or None)
+        endpoint = socket.scope.get("quitbot.forward_ws")
+        if endpoint is None:
+            if len(config.forward_ws) > 1:
+                await socket.close(1008, "Connect through a configured listener")
+                return
+            endpoint = config.forward_ws[0] if config.forward_ws else ForwardWSConfig()
+        await websocket(
+            socket,
+            access_token=endpoint.access_token or None,
+            message_format=endpoint.message_format,
+        )
 
     for path in ("/ws", "/", "/api", "/event"):
         app.websocket(path)(forward_websocket)
     app.state.console_websocket = websocket
 
-    # This describes real HTTP routes. WS uses the same request/result schemas,
-    # with its envelope documented as an explicit vendor extension.
+    # HTTP schemas retain canonical message arrays. WS envelopes and optional
+    # output formatting are documented as explicit vendor extensions.
     schema = app.openapi()
+    schema["x-http-authentication"] = {
+        "header": "Authorization: Bearer <access_token>",
+        "accessTokenConfiguration": "accounts[].http.access_token",
+        "configuredToken": "Only the configured token is accepted; no session expiry. Applies only to this account's HTTP API, not WS or console routes.",
+        "sessionFallback": "Use a console login session when http.access_token is empty (default)",
+    }
     schema["x-websocket"] = {
         "url": "/ws",
         "oneAccountPerEndpoint": True,
@@ -254,16 +291,24 @@ def create_app(
                 "action": "x_authenticate",
                 "params": {"access_token": "<access_token>"},
             },
-            "accessTokenConfiguration": "accounts[].forward_ws.access_token",
-            "configuredToken": "Only the configured token is accepted; no session expiry. Applies only to this account's forward WS, not HTTP or console routes.",
+            "accessTokenConfiguration": "accounts[].forward_ws[].access_token",
+            "configuredToken": "Only this listener's configured token is accepted; no session expiry. Other listeners, HTTP and console routes authenticate independently.",
             "firstFrameResult": "Configured token: {authenticated: true}; console session: {expires_at, must_change_password}",
             "sessionFallback": {
-                "when": "forward_ws.access_token is empty (default)",
+                "when": "The listener's access_token is empty (default)",
                 "login": "Obtain a session from the console service; change the initial password before account access",
                 "durationConfiguration": "webui.session_hours",
                 "defaultDurationSeconds": 14400,
                 "sliding": False,
             },
+        },
+        "messageFormat": {
+            "configuration": "accounts[].forward_ws[].message_format",
+            "values": ["array", "string"],
+            "default": "array",
+            "fields": ["message events: message", "get_msg responses: data.message"],
+            "string": "OneBot v11 CQ string, with escaped text and parameter values",
+            "console": "Always array; HTTP and reverse WS also retain array output",
         },
         "request": {
             "action": "operationId",

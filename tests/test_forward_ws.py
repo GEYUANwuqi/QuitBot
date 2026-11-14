@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from contextlib import AsyncExitStack
 from types import SimpleNamespace
 
 import pytest
@@ -156,9 +157,6 @@ def test_maximum_token_can_be_sent_in_json_and_invalid_config_is_rejected(tmp_pa
         with pytest.raises(ValidationError):
             AccountConfig(account_id="10001", forward_ws={"access_token": invalid})
     assert token not in repr(account)
-    # HTTP accepts session credentials only and has no independent token field.
-    with pytest.raises(ValidationError):
-        AccountConfig(account_id="10001", http={"access_token": TOKEN})
 
 
 def test_live_token_rotation_preserves_binding_and_other_accounts(tmp_path):
@@ -252,9 +250,9 @@ def test_live_token_rotation_preserves_binding_and_other_accounts(tmp_path):
                 assert not access.valid(session)
                 previous = service.accounts["10002"]
                 updated = config.model_copy(deep=True)
-                updated.accounts[
+                updated.accounts[0].forward_ws[
                     0
-                ].forward_ws.access_token = "fixture-replacement-token"
+                ].access_token = "fixture-replacement-token"
                 result = await service.update(updated, store.revision)
                 assert (
                     not result["errors"]
@@ -283,9 +281,116 @@ def test_live_token_rotation_preserves_binding_and_other_accounts(tmp_path):
                 status = await call(ws, "x_get_runtime_status")
                 assert status["connected"] and status["listening"]
             assert (
-                store.read()[0].accounts[0].forward_ws.access_token
+                store.read()[0].accounts[0].forward_ws[0].access_token
                 == "fixture-replacement-token"
             )
+        finally:
+            await service.close()
+
+    asyncio.run(run())
+
+
+def test_multiple_clients_share_one_account_without_replacing_each_other(tmp_path):
+    async def run():
+        access = AccessKeys()
+        service = Service(ConfigStore(tmp_path / "accounts.json"), access)
+        account = AccountConfig(
+            account_id="10001",
+            forward_ws={"enabled": True, "port": port(), "access_token": TOKEN},
+        )
+        try:
+            result = await service.update(
+                ServiceConfig(accounts=[account]), service.store.revision
+            )
+            assert not result["errors"]
+            runtime = service.accounts["10001"].runtime
+            root = f"ws://127.0.0.1:{account.forward_ws[0].port}"
+            async with AsyncExitStack() as stack:
+                clients = []
+                # Both handshake styles coexist on the same listener, with
+                # independent event subscriptions and API replies.
+                for index, path in enumerate(("/ws", "/ws", "/", "/api", "/event")):
+                    headers = (
+                        {"Authorization": "Bearer " + TOKEN} if index % 2 == 0 else {}
+                    )
+                    ws = await stack.enter_async_context(
+                        connect(root + path, additional_headers=headers, proxy=None)
+                    )
+                    if not headers:
+                        await ws.send(
+                            json.dumps(
+                                {
+                                    "action": "x_authenticate",
+                                    "params": {"access_token": TOKEN},
+                                }
+                            )
+                        )
+                        assert json.loads(await ws.recv())["retcode"] == 0
+                    if path != "/api":
+                        assert json.loads(await ws.recv())["self_id"] == 10001
+                    clients.append(ws)
+                assert len(runtime._subscribers) == 4
+
+                async def request(ws, echo):
+                    await ws.send(
+                        json.dumps({"action": "x_get_runtime_status", "echo": echo})
+                    )
+                    reply = json.loads(await asyncio.wait_for(ws.recv(), 3))
+                    assert (
+                        reply["echo"] == echo and reply["data"]["account_id"] == "10001"
+                    )
+
+                await asyncio.gather(
+                    *(request(ws, index) for index, ws in enumerate(clients[:4]))
+                )
+                event = runtime.event("fixture", sequence=1)
+                runtime.publish(event)
+                events = await asyncio.gather(
+                    *(
+                        asyncio.wait_for(clients[index].recv(), 3)
+                        for index in (0, 1, 2, 4)
+                    )
+                )
+                assert all(json.loads(value) == event for value in events)
+                # Disconnecting one client leaves the other subscribers and
+                # callers active. A rejected credential also cannot evict them.
+                await clients[0].close()
+                invalid = await stack.enter_async_context(
+                    connect(
+                        root + "/ws",
+                        additional_headers={
+                            "Authorization": "Bearer fixture-wrong-token"
+                        },
+                        proxy=None,
+                    )
+                )
+                with pytest.raises(ConnectionClosed):
+                    await asyncio.wait_for(invalid.recv(), 3)
+                assert invalid.close_code == 4401
+                await asyncio.gather(
+                    *(
+                        request(clients[index], f"after-close-{index}")
+                        for index in (1, 2, 3)
+                    )
+                )
+                event = runtime.event("fixture", sequence=2)
+                runtime.publish(event)
+                events = await asyncio.gather(
+                    *(asyncio.wait_for(clients[index].recv(), 3) for index in (1, 2, 4))
+                )
+                assert all(json.loads(value) == event for value in events)
+                replacement = await stack.enter_async_context(
+                    connect(
+                        root + "/ws",
+                        additional_headers={"Authorization": "Bearer " + TOKEN},
+                        proxy=None,
+                    )
+                )
+                assert (
+                    json.loads(await replacement.recv())["meta_event_type"]
+                    == "lifecycle"
+                )
+                await request(replacement, "reconnected")
         finally:
             await service.close()
 

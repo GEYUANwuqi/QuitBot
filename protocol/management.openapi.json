@@ -522,10 +522,14 @@
             "default": ""
           },
           "http": {
-            "$ref": "#/components/schemas/ListenerConfig"
+            "$ref": "#/components/schemas/HTTPConfig"
           },
           "forward_ws": {
-            "$ref": "#/components/schemas/ForwardWSConfig"
+            "items": {
+              "$ref": "#/components/schemas/ForwardWSConfig"
+            },
+            "type": "array",
+            "title": "Forward Ws"
           },
           "reverse_ws": {
             "$ref": "#/components/schemas/ReverseWSConfig"
@@ -870,26 +874,22 @@
             "title": "Access Token",
             "description": "正向 WS 独立令牌；留空时使用控制台登录会话",
             "default": ""
+          },
+          "message_format": {
+            "type": "string",
+            "enum": [
+              "array",
+              "string"
+            ],
+            "title": "Message Format",
+            "default": "array"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "title": "ForwardWSConfig"
       },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
-          }
-        },
-        "type": "object",
-        "title": "HTTPValidationError"
-      },
-      "ListenerConfig": {
+      "HTTPConfig": {
         "properties": {
           "enabled": {
             "type": "boolean",
@@ -907,11 +907,32 @@
             "minimum": 1024.0,
             "title": "Port",
             "default": 6700
+          },
+          "access_token": {
+            "type": "string",
+            "maxLength": 4096,
+            "pattern": "^[\\x21-\\x7e]*$",
+            "title": "Access Token",
+            "description": "账号 HTTP 独立令牌；留空时使用控制台登录会话",
+            "default": ""
           }
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "ListenerConfig"
+        "title": "HTTPConfig"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
       },
       "LoggingConfig": {
         "properties": {

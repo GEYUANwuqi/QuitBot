@@ -46,6 +46,16 @@ class ListenerConfig(BaseModel):
     _host = field_validator("host")(listen_host)
 
 
+class HTTPConfig(ListenerConfig):
+    access_token: str = Field(
+        default="",
+        repr=False,
+        pattern=r"^[\x21-\x7e]*$",
+        max_length=4096,
+        description="账号 HTTP 独立令牌；留空时使用控制台登录会话",
+    )
+
+
 class ForwardWSConfig(ListenerConfig):
     port: int = Field(default=6701, ge=1024, le=65535)
     access_token: str = Field(
@@ -55,6 +65,7 @@ class ForwardWSConfig(ListenerConfig):
         max_length=4096,
         description="正向 WS 独立令牌；留空时使用控制台登录会话",
     )
+    message_format: Literal["array", "string"] = "array"
 
 
 class ReverseWSConfig(BaseModel):
@@ -106,8 +117,8 @@ class AccountConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     account_id: str = Field(pattern=r"^[1-9][0-9]*$")
     label: str = ""
-    http: ListenerConfig = Field(default_factory=ListenerConfig)
-    forward_ws: ForwardWSConfig = Field(default_factory=ForwardWSConfig)
+    http: HTTPConfig = Field(default_factory=HTTPConfig)
+    forward_ws: list[ForwardWSConfig] = Field(default_factory=list)
     reverse_ws: ReverseWSConfig = Field(default_factory=ReverseWSConfig)
     hwnd: int | None = None
     targets: list[TargetConfig] = Field(default_factory=list)
@@ -131,6 +142,13 @@ class AccountConfig(BaseModel):
         ]
     )
 
+    @field_validator("forward_ws", mode="before")
+    @classmethod
+    def migrate_forward_listener(cls, value):
+        # Old files stored one endpoint. Read them unchanged and write the
+        # canonical list only when the user next saves configuration.
+        return [value] if isinstance(value, (dict, ForwardWSConfig)) else value
+
     @model_validator(mode="before")
     @classmethod
     def split_listener(cls, value):
@@ -148,6 +166,9 @@ class AccountConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_targets(self):
+        endpoints = [(item.host, item.port) for item in self.forward_ws if item.enabled]
+        if len(endpoints) != len(set(endpoints)):
+            raise ValueError("正向 WS 监听地址和端口不能重复")
         ids = [t.id for t in self.targets]
         if len(ids) != len(set(ids)):
             raise ValueError("Target IDs must be unique within an account")
@@ -192,7 +213,7 @@ class ServiceConfig(BaseModel):
             raise ValueError("One service per account: duplicate account_id")
         ports = {}
         for account in self.accounts:
-            for endpoint in (account.http, account.forward_ws):
+            for endpoint in (account.http, *account.forward_ws):
                 if not endpoint.enabled:
                     continue
                 if endpoint.port == self.webui.port:

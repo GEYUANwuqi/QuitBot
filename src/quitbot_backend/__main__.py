@@ -35,7 +35,7 @@ async def main(path, logs):
         (
             endpoint.access_token
             for account in store.current.accounts
-            for endpoint in (account.forward_ws, account.reverse_ws)
+            for endpoint in (account.http, *account.forward_ws, account.reverse_ws)
         ),
     )
     override = os.environ.get("QUITBOT_MANAGEMENT_PORT")

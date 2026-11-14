@@ -4,7 +4,11 @@ import pytest
 from uia_fixtures import load_tree
 
 from quitbot_backend._engine.adapters.onebot.api import OneBotAdapter
-from quitbot_backend._engine.domain.onebot import parse_segments
+from quitbot_backend._engine.domain.onebot import (
+    format_message_packet,
+    message_to_cq,
+    parse_segments,
+)
 from quitbot_backend._engine.errors import SendOutcomeUnknown
 from quitbot_backend._engine.infrastructure.storage.message_index import MessageIndex
 from quitbot_backend._engine.models import (
@@ -257,3 +261,55 @@ def test_cq_escaping_and_auto_escape_do_not_execute_literal_segments():
         == "[CQ:at,qq=all]"
     )
     assert parse_segments("a&amp;b&#91;c&#93;")[0].data["text"] == "a&b[c]"
+
+
+def test_cq_output_roundtrips_rich_segments_and_keeps_literal_text():
+    segments = [
+        {"type": "text", "data": {"text": "字面 [CQ:at,qq=all] &amp;\n"}},
+        {"type": "at", "data": {"qq": "30001"}},
+        {"type": "face", "data": {"id": "14"}},
+        {
+            "type": "image",
+            "data": {"file": "a,b[1].png", "url": "file:///a,b[1]&x.png"},
+        },
+    ]
+    result = message_to_cq(segments)
+    assert result == (
+        "字面 &#91;CQ:at,qq=all&#93; &amp;amp;\n"
+        "[CQ:at,qq=30001][CQ:face,id=14]"
+        "[CQ:image,file=a&#44;b&#91;1&#93;.png,url=file:///a&#44;b&#91;1&#93;&amp;x.png]"
+    )
+    assert [
+        {"type": part.type, "data": part.data} for part in parse_segments(result)
+    ] == segments
+    assert message_to_cq([]) == ""
+
+
+def test_output_format_changes_only_standard_message_fields_without_mutating():
+    segments = [{"type": "text", "data": {"text": "[hello]"}}]
+    event = {
+        "post_type": "message",
+        "message": segments,
+        "raw_message": "&#91;hello&#93;",
+    }
+    assert format_message_packet(event, "array") is event
+    formatted = format_message_packet(event, "string")
+    assert formatted["message"] == "&#91;hello&#93;"
+    assert (
+        event["message"] == segments
+        and formatted["raw_message"] == event["raw_message"]
+    )
+    reply = {
+        "status": "ok",
+        "data": {"message": segments},
+        "echo": {"message": segments},
+    }
+    formatted = format_message_packet(reply, "string", action="get_msg")
+    assert formatted["data"]["message"] == "&#91;hello&#93;"
+    assert reply["data"]["message"] == segments and formatted["echo"] == reply["echo"]
+    for untouched, action in (
+        (reply, "x_get_runtime_status"),
+        ({"status": "failed", "data": None, "message": "failure"}, "get_msg"),
+        ({"post_type": "quitbot", "ui_message": {"message": segments}}, None),
+    ):
+        assert format_message_packet(untouched, "string", action=action) is untouched

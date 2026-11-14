@@ -22,7 +22,7 @@ QuitBot 提供管理服务和账号服务。控制台服务负责登录与配置
 | HTTP `GET /health` | 服务标识 | 无 |
 | HTTP `/docs`、`/openapi.json` | 管理服务的 Swagger UI / OpenAPI | 无 |
 
-账号 HTTP 与正向 WS 分别由 `http`、`forward_ws` 配置启用，默认端口值分别为 6700、6701。新账号默认关闭对外连接：
+账号 HTTP 由 `http` 配置，正向 WS 由 `forward_ws` 数组配置，每项对应一个监听端点，端口默认值分别为 6700、6701。同一正向 WS 端点支持多个客户端同时连接，各自接收事件和调用回执。新账号默认关闭对外连接：
 
 | 入口 | 用途 | 认证 |
 | --- | --- | --- |
@@ -37,11 +37,15 @@ QuitBot 提供管理服务和账号服务。控制台服务负责登录与配置
 
 ## 正向连接的登录与认证
 
-正向 WS 可在「账号设置 → 正向 WebSocket」设置独立访问令牌，对应 `accounts[].forward_ws.access_token`。填写后，账号的 `/ws`、`/`、`/api`、`/event` 只接受该令牌，控制台退出、改密或会话到期不会使它失效。令牌留空时沿用下面的控制台会话认证。
+正向 WS 可在「账号设置 → 添加连接 → 正向 WebSocket」添加多个端点，各自设置独立访问令牌，对应 `accounts[].forward_ws[].access_token`。填写后，该端点的 `/ws`、`/`、`/api`、`/event` 只接受此令牌，控制台退出、改密或会话到期不会使它失效。令牌随配置保存，后端重启后保持不变；留空时沿用下面的控制台会话认证。
 
 独立令牌通过 `Authorization: Bearer <access_token>` 请求头，或 `x_authenticate` 首帧中的 `params.access_token` 传入。首帧成功回执的 `data` 为 `{"authenticated":true}`，等待 `retcode: 0` 后发送业务请求。更换令牌并成功应用配置后，已有连接关闭，客户端使用新令牌重新连接。
 
-管理服务、控制台专用 `/accounts/{account_id}/ws` 和账号 HTTP 使用控制台登录会话。独立令牌只授权所属账号的正向 WS。
+账号 HTTP 可配置 `accounts[].http.access_token`，通过 Bearer 请求头访问该账号的 HTTP 接口；填写后只接受此令牌，留空使用控制台登录会话。它同样持久保存，独立于控制台的退出、改密和会话到期。HTTP 与各个正向 WS 端点分别校验自己的令牌。
+
+管理服务和控制台专用 `/accounts/{account_id}/ws` 使用控制台登录会话。
+
+每个正向 WS 端点通过 `message_format` 选择消息输出：`array`（默认）为消息段数组，`string` 为 [OneBot CQ 字符串](https://github.com/botuniverse/onebot-11/blob/master/message/string.md)。选择作用于消息事件的 `message` 和成功 `get_msg` 回执的 `data.message`，文字与 CQ 参数按规范转义。动作输入仍同时接受两种格式，`echo` 与扩展事件保持原样。HTTP、反向 WS 和控制台账号通道保持数组输出。需要同时接入两类应用时，添加两个端口，分别选择 `array` 和 `string`；配置示例见[连接配置](configuration.md#http-与正向-ws-配置)。
 
 ### 控制台会话认证
 
@@ -197,7 +201,7 @@ Authorization: Bearer <access_token>
 | 100 | 未绑定、控件不可用、队列已满或运行错误 | 查看 `message` 与运行状态 |
 | 101 | 已提交但结果未知，或写操作回执校验失败 | 查询 QQ 的实际状态后再决定是否重试 |
 | 1400 | 参数或目标约束不满足 | 修正请求参数 |
-| 1401 | 认证失败、令牌无效或会话失效 | 核对正向 WS 配置令牌，或使用密码重新登录 |
+| 1401 | 认证失败、令牌无效或会话失效 | 核对所连接端点的配置令牌，或使用密码重新登录 |
 | 1403 | 首次改密尚未完成 | 先设置新密码 |
 | 1429 | 登录尝试过多 | 按回执提示的剩余时间重试 |
 | 1404 | 未实现的动作、消息形态或功能分支 | 查阅能力矩阵与适配范围 |
@@ -212,7 +216,7 @@ HTTP 认证失败返回 401，参数模型校验失败返回 422，管理配置�
 
 `src/quitbot_backend/contracts.py` 定义账号动作的请求和返回类型，`management.py` 定义管理模型。输入会拒绝未声明字段，布尔参数须使用 JSON 布尔值。消息、文件、成员和公告等结果有明确类型，客户端原文由专用文本或 JSON 字段保留。
 
-OpenAPI 3.1 描述 HTTP 路由，正反向 WS 复用同一套参数与返回模型。`x-websocket`、`x-websocket-action`、`x-mutating` 扩展记录调用关联和写操作标记，`x-websocket.reverse` 描述反向握手与重连规则。
+OpenAPI 3.1 描述 HTTP 路由，正反向 WS 复用动作参数与回执结构。`x-websocket`、`x-websocket-action`、`x-mutating` 扩展记录调用关联和写操作标记，`x-websocket.messageFormat` 描述正向 WS 的消息输出格式，`x-websocket.reverse` 描述反向握手与重连规则，`x-http-authentication` 描述 HTTP 独立认证。
 
 在项目根目录生成协议文件：
 

@@ -167,8 +167,8 @@ uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /o
 | --- | --- |
 | `account_id` | 必填，数字 QQ 号字符串，绑定时核验窗口身份 |
 | `label` | 展示名称，默认为空 |
-| `http` | HTTP 监听配置：`enabled` 默认 `false`，`host` 默认 `127.0.0.1`，`port` 默认 `6700` |
-| `forward_ws` | 正向 WS 配置：`enabled` 默认 `false`，`host` 默认 `127.0.0.1`，`port` 默认 `6701`，`access_token` 默认空 |
+| `http` | HTTP 监听配置：`enabled` 默认 `false`，`host` 默认 `127.0.0.1`，`port` 默认 `6700`，`access_token` 默认空 |
+| `forward_ws` | 正向 WS 配置数组，默认 `[]`；每项包含 `enabled`（默认 `false`）、`host`（默认 `127.0.0.1`）、`port`（默认 `6701`）、`access_token`（默认空）、`message_format`（默认 `array`，可选 `string`） |
 | `hwnd` | 可选窗口句柄，绑定时仍核验 QQ 号 |
 | `targets` | 操作和监听范围；每项包含数字字符串 `id`、精确名称 `name`、类型 `kind`（`group` / `private`，默认 `group`） |
 | `auto_connect` | 默认 `false`；设为 `true` 时启动实例后自动绑定，监听另行启动 |
@@ -191,13 +191,26 @@ uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /o
 
 ## HTTP 与正向 WS 配置
 
-两种连接分别使用账号的 `http` 和 `forward_ws` 字段，可单独添加、启用或关闭。监听地址支持 IP、主机名与通配地址，端口范围为 1024–65535。不同账号及 WebUI 使用不同端口；同一账号的 HTTP 与正向 WS 设置为相同地址、端口时共用监听端点，其他情况下分别监听。仅启用 HTTP 的端点拒绝 WS 握手，仅启用正向 WS 的端点不提供 HTTP 动作与文档。
+两种连接分别使用账号的 `http` 和 `forward_ws` 字段。一个账号可添加多个正向 WS 端点，各自设置端口、令牌、消息格式，并单独启用、停用或删除。监听地址支持 IP、主机名与通配地址，端口范围为 1024–65535。启用的正向 WS 端点使用不同端口，不同账号及 WebUI 也使用不同端口；同一账号的 HTTP 与一个正向 WS 设置为相同地址、端口时共用监听端点，分别校验令牌。仅启用 HTTP 的端点拒绝 WS 握手，仅启用正向 WS 的端点不提供 HTTP 动作与文档。
+
+旧版 `forward_ws` 单对象配置会自动读为单项数组，保留端口和令牌，消息格式默认为 `array`；下次保存时写为数组。
+
+例如，在账号配置中添加以下两个端点，就可以同时服务需要数组和 CQ 字符串的应用。两个端点共用账号绑定、监听任务和动作队列，每个端点也支持多个客户端：
+
+```json
+"forward_ws": [
+  {"enabled": true, "host": "127.0.0.1", "port": 6701, "access_token": "<array-client-token>", "message_format": "array"},
+  {"enabled": true, "host": "127.0.0.1", "port": 6702, "access_token": "<string-client-token>", "message_format": "string"}
+]
+```
+
+将占位令牌替换为自己的值。`message_format` 作用于消息事件的 `message` 与 `get_msg` 的 `data.message`；HTTP、反向 WS、控制台通道保持数组输出。
 
 控制台的 `/accounts/{account_id}/ws` 通道沿用登录会话，与对外 HTTP、正向 WS 和反向 WS 配置独立。
 
-在正向 WebSocket 配置卡片填写「访问令牌」，确认后点击「保存并应用」。`forward_ws.access_token` 支持最多 4096 个不含空白的可打印 ASCII 字符，保存在 `accounts.json`。填写后该账号的正向 WS 只接受此令牌，支持 Bearer 请求头与 `x_authenticate` 首帧；控制台退出、改密和会话到期不影响它。留空时使用控制台登录会话，兼容已有配置。
+在 HTTP 或正向 WebSocket 配置卡片填写「访问令牌」，确认后点击「保存并应用」。`http.access_token` 和 `forward_ws[].access_token` 支持最多 4096 个不含空白的可打印 ASCII 字符，保存在 `accounts.json`，重启后保持不变。填写后对应端点只接受其配置令牌，HTTP 使用 Bearer 请求头，正向 WS 也支持 `x_authenticate` 首帧；控制台退出、改密和会话到期不影响独立令牌。留空时使用控制台登录会话，兼容已有配置。
 
-修改令牌按账号热更新，成功应用后旧连接关闭，第三方客户端使用新令牌重连。其他账号继续运行。独立令牌不用于账号 HTTP 或管理服务，运行状态和日志也不返回令牌明文。具体认证格式见[接口调用](api.md#正向连接的登录与认证)。
+修改令牌按账号热更新，成功应用后该账号旧连接关闭，第三方客户端使用新令牌重连。其他账号继续运行。独立令牌按端点授权，管理服务沿用登录会话；运行状态和日志不返回令牌明文。具体认证格式见[接口调用](api.md#正向连接的登录与认证)。
 
 ## 反向 WS 配置
 

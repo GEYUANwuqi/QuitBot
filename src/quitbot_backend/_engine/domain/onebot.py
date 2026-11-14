@@ -70,6 +70,39 @@ def cq_escape(value):
     return value.replace("&", "&amp;").replace("[", "&#91;").replace("]", "&#93;")
 
 
+def message_to_cq(segments):
+    """Encode canonical OneBot message segments without escaping plain commas."""
+    parts = []
+    for segment in segments:
+        kind, data = segment["type"], segment["data"]
+        if kind == "text":
+            parts.append(cq_escape(data["text"]))
+        else:
+            parameters = "".join(
+                f",{key}={cq_escape(str(value)).replace(',', '&#44;')}"
+                for key, value in data.items()
+            )
+            parts.append(f"[CQ:{kind}{parameters}]")
+    return "".join(parts)
+
+
+def format_message_packet(value, message_format, *, action=None):
+    """Copy only standard message fields; subscribers share the original event."""
+    if message_format != "string":
+        return value
+    if value.get("post_type") == "message":
+        return {**value, "message": message_to_cq(value["message"])}
+    if action == "get_msg" and value.get("status") == "ok":
+        return {
+            **value,
+            "data": {
+                **value["data"],
+                "message": message_to_cq(value["data"]["message"]),
+            },
+        }
+    return value
+
+
 def parse_segments(value, *, auto_escape=False):
     if isinstance(value, str):
         if auto_escape:

@@ -277,9 +277,13 @@ def test_cleanup_failure_still_writes_receipts_without_breaking_operations(
     assert "日志写入或清理失败" in capsys.readouterr().err
 
 
-def test_configured_ws_credentials_and_bearer_tokens_are_redacted(tmp_path, file_logs):
+def test_configured_transport_credentials_and_bearer_tokens_are_redacted(
+    tmp_path, file_logs
+):
     receiver = "synthetic-receiver-credential"
     forward = "synthetic-forward-credential"
+    second_forward = "synthetic-second-forward-credential"
+    http = "synthetic-http-credential"
     session = "qb_synthetic-session-credential"
     password = "synthetic-secret-password"
     service = Service(
@@ -293,7 +297,14 @@ def test_configured_ws_credentials_and_bearer_tokens_are_redacted(tmp_path, file
                     accounts=[
                         AccountConfig(
                             account_id="10001",
-                            forward_ws={"access_token": forward},
+                            http={"access_token": http},
+                            forward_ws=[
+                                {"access_token": forward},
+                                {
+                                    "access_token": second_forward,
+                                    "message_format": "string",
+                                },
+                            ],
                             reverse_ws={"access_token": receiver},
                         )
                     ]
@@ -305,14 +316,19 @@ def test_configured_ws_credentials_and_bearer_tokens_are_redacted(tmp_path, file
 
     asyncio.run(configure())
     logging.getLogger(__name__).error(
-        "forward=%s receiver=%s Authorization: Bearer %s password=%s",
+        "http=%s forward=%s second=%s receiver=%s Authorization: Bearer %s password=%s",
+        http,
         forward,
+        second_forward,
         receiver,
         session,
         password,
     )
     text = log_text(file_logs)
-    assert all(value not in text for value in (forward, receiver, session, password))
+    assert all(
+        value not in text
+        for value in (http, forward, second_forward, receiver, session, password)
+    )
     assert "[REDACTED]" in text
 
 

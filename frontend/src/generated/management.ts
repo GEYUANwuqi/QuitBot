@@ -231,8 +231,9 @@ export interface components {
              * @default
              */
             label: string;
-            http?: components["schemas"]["ListenerConfig"];
-            forward_ws?: components["schemas"]["ForwardWSConfig"];
+            http?: components["schemas"]["HTTPConfig"];
+            /** Forward Ws */
+            forward_ws?: components["schemas"]["ForwardWSConfig"][];
             reverse_ws?: components["schemas"]["ReverseWSConfig"];
             /** Hwnd */
             hwnd?: number | null;
@@ -375,14 +376,15 @@ export interface components {
              * @default
              */
             access_token: string;
+            /**
+             * Message Format
+             * @default array
+             * @enum {string}
+             */
+            message_format: "array" | "string";
         };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
-        };
-        /** ListenerConfig */
-        ListenerConfig: {
+        /** HTTPConfig */
+        HTTPConfig: {
             /**
              * Enabled
              * @default false
@@ -398,6 +400,17 @@ export interface components {
              * @default 6700
              */
             port: number;
+            /**
+             * Access Token
+             * @description 账号 HTTP 独立令牌；留空时使用控制台登录会话
+             * @default
+             */
+            access_token: string;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
         };
         /** LoggingConfig */
         LoggingConfig: {

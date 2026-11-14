@@ -1,0 +1,57 @@
+name: "feat · 功能建议"
+description: 描述希望增加的功能，以及对应的 QQ 或控制台 UI 入口。
+title: "feat: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        QuitBot 通过 QQ 原生界面执行操作。请说明功能用途，并提供能手动完成该操作的 UI 入口，方便确认实现路径。
+        截图或录屏中请遮盖真实 QQ 号 / 群号、私人聊天内容及访问凭证。
+
+  - type: textarea
+    id: feature
+    attributes:
+      label: 功能描述
+      description: 说明希望实现什么功能、使用场景和预期结果。
+      placeholder: |
+        希望增加的功能：
+        使用场景：
+        预期结果：
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: 相关平台与 QQ 版本
+      description: 填写下面 UI 入口所在的系统和 QQ 完整版本号。
+      placeholder: Windows / Linux 发行版及版本；QQ 完整版本号
+    validations:
+      required: true
+
+  - type: textarea
+    id: ui-entry
+    attributes:
+      label: 功能的 UI 入口与操作步骤
+      description: 写明 QQ 原生界面的窗口、按钮、右键菜单或二级菜单，以及所需权限。控制台功能请填写对应的 QuitBot 页面；纯接口或传输功能请说明调用流程。
+      placeholder: |
+        所在界面（QQ / QuitBot 控制台）：
+        入口路径（例如：群聊窗口 → 右上角菜单 → …）：
+        前置条件 / 账号权限：
+        手动操作步骤与可见结果：
+        1.
+        2.
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 入口截图或录屏
+      description: 可附入口、展开的菜单和操作结果，帮助定位控件。
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 补充信息
+      description: 可补充现有替代操作、期望的接口调用方式或相关资料。

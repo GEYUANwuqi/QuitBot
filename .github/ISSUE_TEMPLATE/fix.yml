@@ -1,0 +1,99 @@
+name: "fix · 问题反馈"
+description: 反馈现有功能的错误，并提供版本、系统环境和报错信息。
+title: "fix: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请填写发生问题时的环境和操作，方便复现。
+        提交日志或截图前，请遮盖临时密码、访问令牌、真实 QQ 号 / 群号及私人聊天内容。
+
+  - type: input
+    id: quitbot-version
+    attributes:
+      label: QuitBot 版本
+      description: '在项目目录运行 `uv run --locked --no-dev python -c "from quitbot_backend import __version__; print(__version__)"`。源码运行请同时附上 Git 提交号；启动失败时可填写安装包版本。'
+      placeholder: 版本号；Git 提交号（源码运行时）
+    validations:
+      required: true
+
+  - type: input
+    id: qq-version
+    attributes:
+      label: QQ 版本
+      description: 填写官方 QQ 客户端的完整版本号，可从 QQ 的关于页面查看。
+      placeholder: QQ 完整版本号
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 系统环境
+      description: 填写系统版本、架构和运行方式。Linux 请说明发行版与图形会话；页面问题请附浏览器版本。
+      placeholder: |
+        操作系统及版本：
+        系统架构（x86_64 / ARM64 等）：
+        运行方式（Windows 本机 / Anode、Linux 已有 X11 桌面 / 无头 Xvfb 等）：
+        启动命令：
+        浏览器及版本（页面问题时）：
+    validations:
+      required: true
+
+  - type: textarea
+    id: broken-feature
+    attributes:
+      label: 出错功能与现象
+      description: 写明出错的功能、页面入口或 API 动作名，以及预期和实际结果。
+      placeholder: |
+        出错功能：
+        页面入口 / API 动作名：
+        预期结果：
+        实际结果：
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤
+      description: 从操作前的状态开始说明，涉及群管理时请附账号权限，并说明是否每次都会发生。
+      placeholder: |
+        前置状态 / 账号权限：
+        1.
+        2.
+        3.
+        发生频率：
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        **报错信息从哪里找：**
+
+        - **日志文件**：正常启动即自动写入项目根目录的 `logs/quitbot-YYYY-MM-DD.log`。默认保留 7 天，可在「其他设置 → 日志」调整。请直接拖入问题发生日期的文件，无需额外启动参数。
+        - **日志范围**：包括启动与后端异常、接口动作与响应代码、失败调用栈、监听错误、账号连接和配置保存 / 应用错误；日志同时显示在启动终端。旧版本尚无文件日志时，请复制终端输出。
+        - **接口错误**：控制台「接口调试 → 响应结果」可复制错误；自行调用 HTTP / WS 时，附失败回执中的 `retcode`、`message`、`data` 等字段。
+        - **监听错误**：查看「账号设置 → 运行状态」中的错误，以及「实时事件 → 扩展事件」中的 `listener_error` 原始 JSON。账号连接和配置错误直接显示在对应操作页面。
+
+        详细说明见[错误信息与日志](https://github.com/GEYUANwuqi/QuitBot/blob/master/docs/configuration.md#错误信息与日志)。请保留问题前后的上下文与完整 Traceback。
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志文件与错误原文
+      description: 直接拖入对应日期的日志文件，并填写发生时间。也可补充页面错误原文或失败回执；旧版本没有日志文件时请粘贴终端输出。若未生成日志，请说明已查看的位置。
+      placeholder: |
+        问题发生时间：
+        日志文件（拖入此处上传）：
+        页面错误或失败回执（可选）：
+        报错原文：
+    validations:
+      required: true
+
+  - type: textarea
+    id: attachments
+    attributes:
+      label: 截图与补充信息
+      description: 可附相关界面截图、录屏或脱敏后的调用参数。

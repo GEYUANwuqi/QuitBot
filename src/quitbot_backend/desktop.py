@@ -49,6 +49,7 @@ def session(args):
             DISPLAY=args.display,
             XAUTHORITY=str(Path(directory) / "Xauthority"),
             QT_QPA_PLATFORM="xcb",
+            QUITBOT_QQ_EXECUTABLE=args.qq,
         )
         Path(os.environ["XAUTHORITY"]).touch(mode=0o600)
         subprocess.run(
@@ -86,7 +87,6 @@ def session(args):
             start([args.window_manager])
             start(["stalonetray", "--geometry", "1x1+0+0", "--icon-size", "32"])
             enable_accessibility()
-            start([args.qq, "--force-renderer-accessibility"])
             start([sys.executable, "-m", "quitbot_backend"])
             print(
                 f"QuitBot X11 session ready: DISPLAY={args.display}; XAUTHORITY={os.environ['XAUTHORITY']}",

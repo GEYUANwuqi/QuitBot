@@ -395,6 +395,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/x_download_message_file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 通过消息的另存为下载私聊或群聊文件 */
+        post: operations["x_download_message_file"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/get_image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 获取当前账号已导出图片的本地路径 */
+        post: operations["get_image"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/x_get_image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 通过认证连接读取图片原始字节的 base64 */
+        post: operations["x_get_image"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/get_group_info": {
         parameters: {
             query?: never;
@@ -2825,6 +2876,22 @@ export interface components {
             attachments: components["schemas"]["Attachment"][];
             quote?: components["schemas"]["QuotedMessage"] | null;
         };
+        /** ImageContent */
+        ImageContent: {
+            /** File */
+            file: string;
+            /** Base64 */
+            base64: string;
+            /** Size */
+            size: number;
+            /** Mime Type */
+            mime_type: string;
+        };
+        /** ImageFile */
+        ImageFile: {
+            /** File */
+            file: string;
+        };
         /** InstanceStatus */
         InstanceStatus: {
             /** Account */
@@ -3040,6 +3107,23 @@ export interface components {
              */
             face_count: number;
         };
+        /** MessageFileDownload */
+        MessageFileDownload: {
+            /** Target Id */
+            target_id: string;
+            /** Ui Message Id */
+            ui_message_id: string;
+            /** Name */
+            name: string;
+            /** Local Path */
+            local_path: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Sha256 */
+            sha256: string;
+            /** Verified In Ui */
+            verified_in_ui: boolean;
+        };
         /** MessageId */
         MessageId: {
             /** Message Id */
@@ -3060,7 +3144,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "text" | "mention";
+            kind: "text" | "mention" | "image" | "face";
             /** Text */
             text: string;
         };
@@ -3142,6 +3226,11 @@ export interface components {
         Params_get_group_member_list: {
             /** Group Id */
             group_id: string | number;
+        };
+        /** Params_get_image */
+        Params_get_image: {
+            /** File */
+            file: string;
         };
         /** Params_get_login_info */
         Params_get_login_info: Record<string, never>;
@@ -3434,6 +3523,15 @@ export interface components {
             /** Download Root */
             download_root: string;
         };
+        /** Params_x_download_message_file */
+        Params_x_download_message_file: {
+            /** Message Id */
+            message_id: string | number;
+            /** Destination */
+            destination: string;
+            /** Expected Name */
+            expected_name: string;
+        };
         /** Params_x_edit_group_notice */
         Params_x_edit_group_notice: {
             /** Target Id */
@@ -3635,6 +3733,11 @@ export interface components {
             year: number;
             /** Month */
             month: number;
+        };
+        /** Params_x_get_image */
+        Params_x_get_image: {
+            /** File */
+            file: string;
         };
         /** Params_x_get_member_actions */
         Params_x_get_member_actions: {
@@ -4665,6 +4768,40 @@ export interface components {
             /** Wording */
             wording?: string | null;
         };
+        /** Reply[ImageContent] */
+        Reply_ImageContent_: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "failed";
+            /** Retcode */
+            retcode: number;
+            /** Data */
+            data?: components["schemas"]["ImageContent"] | components["schemas"]["UnknownOutcome"] | null;
+            echo?: components["schemas"]["JsonValue"];
+            /** Message */
+            message?: string | null;
+            /** Wording */
+            wording?: string | null;
+        };
+        /** Reply[ImageFile] */
+        Reply_ImageFile_: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "failed";
+            /** Retcode */
+            retcode: number;
+            /** Data */
+            data?: components["schemas"]["ImageFile"] | components["schemas"]["UnknownOutcome"] | null;
+            echo?: components["schemas"]["JsonValue"];
+            /** Message */
+            message?: string | null;
+            /** Wording */
+            wording?: string | null;
+        };
         /** Reply[InstanceStatus] */
         Reply_InstanceStatus_: {
             /**
@@ -4812,6 +4949,23 @@ export interface components {
             retcode: number;
             /** Data */
             data?: components["schemas"]["MemberRemovalReceipt"] | components["schemas"]["UnknownOutcome"] | null;
+            echo?: components["schemas"]["JsonValue"];
+            /** Message */
+            message?: string | null;
+            /** Wording */
+            wording?: string | null;
+        };
+        /** Reply[MessageFileDownload] */
+        Reply_MessageFileDownload_: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "failed";
+            /** Retcode */
+            retcode: number;
+            /** Data */
+            data?: components["schemas"]["MessageFileDownload"] | components["schemas"]["UnknownOutcome"] | null;
             echo?: components["schemas"]["JsonValue"];
             /** Message */
             message?: string | null;
@@ -6411,6 +6565,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Reply_ProtocolMessage_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    x_download_message_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Params_x_download_message_file"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reply_MessageFileDownload_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_image: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Params_get_image"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reply_ImageFile_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    x_get_image: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Params_x_get_image"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reply_ImageContent_"];
                 };
             };
             /** @description Validation Error */

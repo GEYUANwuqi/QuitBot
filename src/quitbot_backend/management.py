@@ -31,6 +31,7 @@ from .auth import (
 from .config import ServiceConfig
 from .contracts import RuntimeStatus
 from .discovery import DiscoveredWindow, DiscoveryView
+from .qq_login import QQLoginAction, QQLoginRequest, QQLoginStart, QQLoginView
 from .service import Service
 
 
@@ -49,6 +50,7 @@ class AccountActivation(BaseModel):
     model_config = ConfigDict(extra="forbid")
     hwnd: int = Field(gt=0)
     revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    expected_account_id: str | None = Field(default=None, pattern=r"^[1-9][0-9]*$")
 
 
 class WebUIStatus(BaseModel):
@@ -97,7 +99,10 @@ def create_management_app(
     async def check_origin(request, call_next):
         if not allowed(request.headers.get("origin"), request.headers.get("host")):
             return JSONResponse({"detail": "Origin not allowed"}, status_code=403)
-        return await call_next(request)
+        response = await call_next(request)
+        if request.url.path.startswith("/api/qq/login/"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
 
     def require_session(
         credentials: Annotated[
@@ -159,6 +164,32 @@ def create_management_app(
     async def refresh_discovery() -> DiscoveryView:
         return await service.refresh_discovery()
 
+    async def qq_login_call(method, body):
+        try:
+            return await service.qq_login.call(method, body)
+        except ValueError as error:
+            raise HTTPException(409, str(error)) from error
+
+    @app.post(
+        "/api/qq/login/start", dependencies=[Depends(require_access)], tags=["qq-login"]
+    )
+    async def start_qq_login(body: QQLoginStart) -> QQLoginView:
+        return await qq_login_call("start", body)
+
+    @app.post(
+        "/api/qq/login/state", dependencies=[Depends(require_access)], tags=["qq-login"]
+    )
+    async def read_qq_login(body: QQLoginRequest) -> QQLoginView:
+        return await qq_login_call("read", body)
+
+    @app.post(
+        "/api/qq/login/action",
+        dependencies=[Depends(require_access)],
+        tags=["qq-login"],
+    )
+    async def act_qq_login(body: QQLoginAction) -> QQLoginView:
+        return await qq_login_call("act", body)
+
     @app.post(
         "/api/accounts/activate",
         dependencies=[Depends(require_access)],
@@ -167,7 +198,9 @@ def create_management_app(
     async def activate_account(body: AccountActivation) -> ConfigView:
         try:
             return ConfigView.model_validate(
-                await service.activate_account(body.hwnd, body.revision)
+                await service.activate_account(
+                    body.hwnd, body.revision, body.expected_account_id
+                )
             )
         except ValueError as error:
             raise HTTPException(409, str(error)) from error
@@ -271,12 +304,28 @@ def create_management_app(
                         service.access.session(token)
                         activation = AccountActivation.model_validate(params)
                         data = await service.activate_account(
-                            activation.hwnd, activation.revision
+                            activation.hwnd,
+                            activation.revision,
+                            activation.expected_account_id,
                         )
                     elif action == "x_set_config":
                         service.access.session(token)
                         update = ConfigUpdate.model_validate(params)
                         data = await service.update(update.config, update.revision)
+                    elif action in {
+                        "x_start_qq_login",
+                        "x_get_qq_login",
+                        "x_submit_qq_login",
+                    }:
+                        service.access.session(token)
+                        method, model = {
+                            "x_start_qq_login": ("start", QQLoginStart),
+                            "x_get_qq_login": ("read", QQLoginRequest),
+                            "x_submit_qq_login": ("act", QQLoginAction),
+                        }[action]
+                        data = (
+                            await qq_login_call(method, model.model_validate(params))
+                        ).model_dump()
                     else:
                         raise ValueError("Unknown management action")
                     response = {"status": "ok", "retcode": 0, "data": data, **echo}
@@ -331,6 +380,9 @@ def create_management_app(
                 "result": "ConfigView",
             },
             "x_set_config": {"params": "ConfigUpdate", "result": "ConfigView"},
+            "x_start_qq_login": {"params": "QQLoginStart", "result": "QQLoginView"},
+            "x_get_qq_login": {"params": "QQLoginRequest", "result": "QQLoginView"},
+            "x_submit_qq_login": {"params": "QQLoginAction", "result": "QQLoginView"},
         },
         "session": {
             "durationConfiguration": "webui.session_hours",

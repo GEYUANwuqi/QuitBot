@@ -53,7 +53,7 @@ class QuotedMessage:
 
 @dataclass(frozen=True)
 class MessagePart:
-    kind: Literal["text", "mention"]
+    kind: Literal["text", "mention", "image", "face"]
     text: str
 
 
@@ -204,6 +204,10 @@ def body_nodes(node: Node):
 
 
 def message_parts(node: Node):
+    if node.has_class("face-element"):
+        return (MessagePart("face", ""),)
+    if node.type == "ImageControl" and (node.name == "图片" or node.has_class("pic-element")):
+        return (MessagePart("image", ""),)
     if node.has_class("reply-element"):
         return ()
     if node.has_class("text-element--at"):
@@ -293,7 +297,7 @@ def parse_messages(
         attachments = (
             (Attachment("file", filename, text_of(file)),)
             if file
-            else (Attachment("image"),)
+            else tuple(Attachment("image") for part in message_parts(body) if part.kind == "image")
             if image
             else ()
         )

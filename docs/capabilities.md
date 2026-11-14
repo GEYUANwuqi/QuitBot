@@ -2,7 +2,7 @@
 
 Windows 与 Linux 共用下方业务动作目录。Windows 使用 UI Automation，Linux 使用 AT-SPI 与 X11；客户端是否显示入口、可用权限及已加载范围仍由实际 QQ 界面决定。Linux 无头启动与系统依赖见 [README](../README.md#快速开始)。
 
-本页列出已有公开调用入口的能力。账号服务共提供 128 个动作，包含 QQ 业务、账号生命周期和目录查询；本机控制台服务另行提供登录、会话与配置接口。
+本页列出已有公开调用入口的能力。账号服务共提供 131 个动作，包含 QQ 业务、账号生命周期和目录查询；本机控制台服务另行提供登录、会话与配置接口。
 
 ## 业务能力与使用条件
 
@@ -11,6 +11,8 @@ Windows 与 Linux 共用下方业务动作目录。Windows 使用 UI Automation�
 | 消息发送 | 文字、单本地图片、文件、引用回复、单人 @、原生表情 | 配置内的群聊 / 私聊；已有草稿时拒绝覆盖，提交后读取原生回执 |
 | 消息操作 | 单条转发、撤回、精华、贴表情读取 / 添加 / 移除本人回应 | 操作仍可定位的消息，受 QQ 权限和时间窗限制；贴表情添加要求当前账号尚未回应该消息 |
 | 消息查询 | 当前加载列表、按本地协议 ID 查询、历史文本 / 文件筛选、日期和发送人过滤、历史日历 | 结果来自客户端已加载视图，历史筛选受页面加载范围限制 |
+| 图片与文件资源 | 原始图片导出、OneBot 图片 / 普通表情消息、`get_image`、base64 读取、缓存图片再次发送；按消息下载文件 | 原图通过 QQ 复制操作提供，按账号缓存并保留 GIF；普通表情编号读取 QQ 富文本剪贴板；文件下载校验消息 ID 与文件名，目标须不存在 |
+| QQ 网页登录 | 启动 QQ、保存账号选择、二维码读取 / 刷新、打开后台已登录账号、登录后核验与连接 | 完成控制台改密后使用，手机 QQ 负责扫码确认；Linux 已实测完整浏览器流程，Windows 登录页待交叉验证 |
 | 历史图片 | 私聊图片按日期与预期 UI 消息键定位 | 日期内唯一已加载缩略图，定位后核验消息键和可见图片 |
 | 会话状态 | 置顶、免打扰、标未读、草稿读写 / 清空 / 发送、私聊自动下载和屏蔽 | 状态由原生界面回读；草稿操作校验当前内容 |
 | 会话探查 | 已加载最近会话与主窗口当前会话、名称筛选与勾选、所选会话号码及类型读取 | 可见同名会话拒绝自动选择；核验可滚动查找条目，使用 QQ 复制号码菜单并更新剪贴板；保存配置后才加入监听范围 |
@@ -69,6 +71,9 @@ Linux 的好友 / 入群请求处理、踢人与退群保留共用调用入口�
 | `send_private_msg` | user_id, message, auto_escape? | `MessageId` | 是 |
 | `send_msg` | message_type?, group_id?, user_id?, message, auto_escape? | `MessageId` | 是 |
 | `get_msg` | message_id | `ProtocolMessage` | 否 |
+| `x_download_message_file` | message_id, destination, expected_name | `MessageFileDownload` | 是 |
+| `get_image` | file | `ImageFile` | 否 |
+| `x_get_image` | file | `ImageContent` | 否 |
 | `get_group_info` | group_id, no_cache? | `GroupInfo` | 否 |
 | `get_group_member_list` | group_id | `list[MemberInfo]` | 否 |
 | `get_group_member_info` | group_id, user_id, no_cache? | `MemberInfo` | 否 |

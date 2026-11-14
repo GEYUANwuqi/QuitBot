@@ -139,7 +139,7 @@ Authorization: Bearer <access_token>
 
 `x_get_messages` 返回 `[{message_id, message}]`。外层 `message_id` 是本账号的本地协议 ID，内层 `message.id` 是 UI 消息键。常规查询、撤回、回复、精华和贴表情动作使用协议 ID；`x_get_contact_card_profile.ui_message_id` 与 `x_locate_history_image.expected_message_id` 使用 UI 消息键。
 
-文件路径均指**后端所在电脑**的路径，包含发送、上传、下载和图片保存。媒体发送范围为本地文件；远程 URL、base64 媒体和服务端文件 ID 尚未适配。
+文件路径均指**后端所在电脑**的路径，包含发送、上传、下载和图片保存。图片还支持本账号接收缓存的 `file` 标识；远程 URL、base64 媒体发送和 QQ 服务端文件 ID 尚未适配。`get_image` 返回该缓存的本地路径，`x_get_image` 返回 `file / base64 / size / mime_type`，可用于远程取得原图。`x_download_message_file` 接受协议 `message_id`、`expected_name` 与后端 `destination`，通过原生另存为保存文件，输出路径须不存在。
 
 ## 收藏表情与平台字段
 
@@ -164,13 +164,18 @@ Authorization: Bearer <access_token>
 | `x_set_config` | `config`、`revision` | `ConfigView` |
 | `x_get_discovery` | `{}` | `DiscoveryView`，只读取缓存 |
 | `x_refresh_discovery` | `{}` | `DiscoveryView`，等待本次扫描结束 |
-| `x_activate_account` | `hwnd`、`revision` | `ConfigView`，读取所选窗口资料并完成绑定核验 |
+| `x_start_qq_login` | `hwnd?`、`pid?`（同时填写）、`new_instance?` | `QQLoginView`，附着所选 QQ；`new_instance: true` 新开登录窗口以添加账号，与窗口选择互斥 |
+| `x_get_qq_login` | `login_id` | `QQLoginView`，读取登录状态与当前二维码 |
+| `x_submit_qq_login` | `login_id`、`action`、`account_key?` | `QQLoginView`，提交登录页操作 |
+| `x_activate_account` | `hwnd`、`revision`、`expected_account_id?` | `ConfigView`，读取所选窗口资料并完成绑定核验 |
+
+`QQLoginView.state` 为 `starting / accounts / qr / expired / waiting / existing / logged_in / closed`。保存账号列表提供当前界面选择键 `key` 与昵称，只有界面显示数字 QQ 号时才填充 `account_id`。提交 `login` 时传入所选 `account_key`；其余操作为 `qr / refresh_qr / back / open_existing`。`qr_image` 是 PNG data URL，仅通过已认证连接返回，HTTP 禁止缓存。登录成功的 `profile` 包含核验后的数字 QQ 号；刷新进程列表后调用 `x_activate_account` 完成配置与连接。登录会话有效 30 分钟，新流程会替换旧 `login_id`，提交动作不自动重放。HTTP 对应 `POST /api/qq/login/start`、`/state`、`/action`。
 
 `ConfigView` 包含 `config`、`revision`、`applied_revision`、`accounts`、`activated_accounts`、`errors` 和 `webui`。`webui` 返回当前实际 `host / port / url`、是否等待重启的 `restart_required` 和端口是否由环境覆盖的 `port_overridden`。保存时传回读取到的 `revision`，处理结果按[配置应用状态](configuration.md#修改与热更新)判断。
 
 `DiscoveryView` 包含 `state`（`idle / scanning / ready / failed`）、`session_id`、Unix 秒时间 `scanned_at`、`windows` 及整体 `error`。`windows` 的每项为 `DiscoveredProcess`，只包含 `hwnd / pid / process_name`。探查通过 Win32 / X11 枚举进程窗口，不读取 QQ 号、昵称或头像。整体失败时返回空列表和具体原因。探查操作需要完整登录权限，首次改密前无法调用。
 
-`x_activate_account` 核对缓存中的窗口与当前进程，只对所选窗口读取账号资料。QQ 号、昵称、头像完整且绑定成功后，`ConfigView.activated_accounts` 返回该账号的 `DiscoveredWindow`：`hwnd / pid / nickname / account_id / avatar / available / error`。`avatar` 为原生头像控件的 PNG data URL，资料只缓存在内存；普通刷新复用缓存，进程窗口消失或变化时移除缓存。资料读取失败时操作返回错误，修复窗口状态后可重新连接。
+`x_activate_account` 核对缓存中的窗口与当前进程；前端传入登录面板显示的 `expected_account_id`，再次读取 QQ 号后确认一致再保存。只对所选窗口读取账号资料。QQ 号、昵称、头像完整且绑定成功后，`ConfigView.activated_accounts` 返回该账号的 `DiscoveredWindow`：`hwnd / pid / nickname / account_id / avatar / available / error`。`avatar` 为原生头像控件的 PNG data URL，资料只缓存在内存；普通刷新复用缓存，进程窗口消失或变化时移除缓存。资料读取失败时操作返回错误，修复窗口状态后可重新连接。
 
 账号连接页进入时调用一次刷新，手动刷新仍然可用；后端启动不扫描。`x_activate_account` 仅接受本次进程缓存中的窗口，更新已有账号窗口时保留网络和监听配置。服务重启后需重新连接以建立资料缓存；探查整体失败时清空激活列表，已有配置保留。
 

@@ -184,6 +184,41 @@ class Desktop:
                 self._sequence += 1
         return self._sequence
 
+    def copied_rich_text(self):
+        try:
+            data = subprocess.check_output(
+                ["xclip", "-selection", "clipboard", "-o", "-target", "QQ_Unicode_RichEdit_Format"],
+                stderr=subprocess.PIPE, timeout=3,
+            )
+        except (OSError, subprocess.SubprocessError) as error:
+            raise ControlUnavailable("QQ 未提供富文本剪贴板格式") from error
+        if len(data) > 65536:
+            raise ControlUnavailable("QQ 富文本剪贴板内容过大")
+        return data.decode("utf-8")
+
+    def copied_files(self):
+        from urllib.parse import unquote, urlsplit
+
+        try:
+            value = subprocess.check_output(
+                ["xclip", "-selection", "clipboard", "-o", "-target", "x-special/gnome-copied-files"],
+                stderr=subprocess.PIPE, timeout=3,
+            )
+        except (OSError, subprocess.SubprocessError) as error:
+            raise ControlUnavailable("QQ 未向剪贴板导出原始图片文件") from error
+        if len(value) > 65536:
+            raise ControlUnavailable("QQ 剪贴板文件列表过大")
+        lines = value.decode("utf-8").splitlines()
+        if not lines or lines[0] != "copy":
+            raise ControlUnavailable("QQ 剪贴板不是文件复制结果")
+        paths = []
+        for line in lines[1:]:
+            uri = urlsplit(line)
+            if uri.scheme != "file" or uri.netloc not in ("", "localhost") or uri.query or uri.fragment:
+                raise ControlUnavailable("QQ 剪贴板资源不是本地文件")
+            paths.append(unquote(uri.path))
+        return paths
+
     def clipboard_text(self):
         try:
             return subprocess.check_output(

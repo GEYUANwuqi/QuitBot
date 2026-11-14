@@ -15,6 +15,7 @@ from ._engine.domain.group_files import GroupFileEntry
 from ._engine.domain.onebot import Unsupported
 from ._engine.domain.stickers import FavoriteSticker
 from ._engine.errors import MutationOutcomeUnknown, QuitBotError, SendOutcomeUnknown
+from ._engine.infrastructure.storage.media import ImageCache
 from ._engine.infrastructure.storage.message_index import MessageIndex
 from ._engine.models import Target
 from ._engine.platforms import TRANSPORT_NAME
@@ -117,7 +118,8 @@ class AccountRuntime:
                 (b.group_id, b.name): b.user_id for b in self.config.member_bindings
             }
             self.adapter = OneBotAdapter(
-                qq, self.config.account_id, index=index, member_ids=bindings
+                qq, self.config.account_id, index=index, member_ids=bindings,
+                image_cache=ImageCache(self.state_dir / self.config.account_id / "images")
             )
             self.qq, self.index = qq, index
             self.last_error = None
@@ -186,6 +188,7 @@ class AccountRuntime:
                 )
             except (QuitBotError, ValueError):
                 pass
+        await self.adapter.prepare_message(event.conversation, event.message)
         self.publish(
             self.adapter.message_event(event.conversation.target, event.message)
         )

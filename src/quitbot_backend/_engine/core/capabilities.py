@@ -208,7 +208,7 @@ CAPABILITIES = (
     Capability(
         "send_face",
         True,
-        "按默认表情控件名称选择，支持单表情及附带文字；接收记录face_count，表情协议ID未知时不伪造",
+        "按默认表情控件名称选择，支持单表情及附带文字；接收时读取 QQ 富文本剪贴板中的 sysfaceindex，并转换为 OneBot face 段；未提供编号时保留原始观察",
         category="chat",
     ),
     Capability(
@@ -224,7 +224,9 @@ CAPABILITIES = (
         category="group",
     ),
     Capability("send_text", True, "Unicode text; local UI receipt"),
-    Capability("send_image", True, "One local image through QQ's picker"),
+    Capability("send_image", True, "One local or account-cached image through QQ's picker"),
+    Capability("receive_images", True, "QQ 复制导出原图，保留 GIF 动画；OneBot image / get_image 与认证 base64 读取，平台须提供原文件剪贴板格式"),
+    Capability("message_file_download", True, "按消息 ID 与预期文件名核验，原生另存为输出到新路径，返回本地大小与 SHA-256"),
     Capability("send_file", True, "One local file with filename/status checks"),
     Capability(
         "quote_reply",

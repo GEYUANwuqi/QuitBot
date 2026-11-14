@@ -303,6 +303,21 @@ class Conversation:
             raise TargetMismatch("Conversation does not match the instance registry")
         return self.instance._client
 
+    def download_message_file(self, message_id, destination, *, expected_name):
+        from .ui.workflows.media import download_message_file
+
+        return download_message_file(self._client(), self.target, message_id, destination, expected_name=expected_name)
+
+    def export_face_ids(self, message_id):
+        from .ui.workflows.media import export_face_ids
+
+        return export_face_ids(self._client(), self.target, message_id)
+
+    def export_images(self, message_id):
+        from .ui.workflows.media import export_images
+
+        return export_images(self._client(), self.target, message_id)
+
     def open(self, *, route="auto") -> ConversationInfo:
         return self._client().open_chat(self.target, route=route)
 

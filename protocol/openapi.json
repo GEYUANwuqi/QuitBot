@@ -3,7 +3,7 @@
   "info": {
     "title": "QuitBot Account API",
     "description": "One QQ account per service. HTTP actions and WS share validation and result types. UI observations are partial; mutations are never retried automatically.",
-    "version": "0.14.0"
+    "version": "0.15.0"
   },
   "paths": {
     "/health": {
@@ -1089,6 +1089,150 @@
           }
         ],
         "x-websocket-action": "get_msg",
+        "x-mutating": false
+      }
+    },
+    "/api/x_download_message_file": {
+      "post": {
+        "tags": [
+          "extension"
+        ],
+        "summary": "通过消息的另存为下载私聊或群聊文件",
+        "operationId": "x_download_message_file",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Params_x_download_message_file"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reply_MessageFileDownload_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "x-websocket-action": "x_download_message_file",
+        "x-mutating": true
+      }
+    },
+    "/api/get_image": {
+      "post": {
+        "tags": [
+          "onebot"
+        ],
+        "summary": "获取当前账号已导出图片的本地路径",
+        "operationId": "get_image",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Params_get_image"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reply_ImageFile_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "x-websocket-action": "get_image",
+        "x-mutating": false
+      }
+    },
+    "/api/x_get_image": {
+      "post": {
+        "tags": [
+          "extension"
+        ],
+        "summary": "通过认证连接读取图片原始字节的 base64",
+        "operationId": "x_get_image",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Params_x_get_image"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reply_ImageContent_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "x-websocket-action": "x_get_image",
         "x-mutating": false
       }
     },
@@ -7966,6 +8110,47 @@
         ],
         "title": "HistoryRecord"
       },
+      "ImageContent": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "title": "File"
+          },
+          "base64": {
+            "type": "string",
+            "title": "Base64"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "Mime Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file",
+          "base64",
+          "size",
+          "mime_type"
+        ],
+        "title": "ImageContent"
+      },
+      "ImageFile": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "ImageFile"
+      },
       "InstanceStatus": {
         "properties": {
           "account": {
@@ -8463,6 +8648,49 @@
         ],
         "title": "Message"
       },
+      "MessageFileDownload": {
+        "properties": {
+          "target_id": {
+            "type": "string",
+            "title": "Target Id"
+          },
+          "ui_message_id": {
+            "type": "string",
+            "title": "Ui Message Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "local_path": {
+            "type": "string",
+            "title": "Local Path"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "verified_in_ui": {
+            "type": "boolean",
+            "title": "Verified In Ui"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_id",
+          "ui_message_id",
+          "name",
+          "local_path",
+          "size_bytes",
+          "sha256",
+          "verified_in_ui"
+        ],
+        "title": "MessageFileDownload"
+      },
       "MessageId": {
         "properties": {
           "message_id": {
@@ -8507,7 +8735,9 @@
             "type": "string",
             "enum": [
               "text",
-              "mention"
+              "mention",
+              "image",
+              "face"
             ],
             "title": "Kind"
           },
@@ -8817,6 +9047,21 @@
           "group_id"
         ],
         "title": "Params_get_group_member_list"
+      },
+      "Params_get_image": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "minLength": 1,
+            "title": "File"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Params_get_image"
       },
       "Params_get_login_info": {
         "properties": {},
@@ -9850,6 +10095,41 @@
         ],
         "title": "Params_x_download_group_folder"
       },
+      "Params_x_download_message_file": {
+        "properties": {
+          "message_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[1-9][0-9]*$"
+              },
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              }
+            ],
+            "title": "Message Id"
+          },
+          "destination": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Destination"
+          },
+          "expected_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Expected Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "message_id",
+          "destination",
+          "expected_name"
+        ],
+        "title": "Params_x_download_message_file"
+      },
       "Params_x_edit_group_notice": {
         "properties": {
           "target_id": {
@@ -10678,6 +10958,21 @@
           "month"
         ],
         "title": "Params_x_get_history_calendar"
+      },
+      "Params_x_get_image": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "minLength": 1,
+            "title": "File"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Params_x_get_image"
       },
       "Params_x_get_member_actions": {
         "properties": {
@@ -14538,6 +14833,128 @@
         ],
         "title": "Reply[HistoryCalendar]"
       },
+      "Reply_ImageContent_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "retcode": {
+            "type": "integer",
+            "title": "Retcode"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageContent"
+              },
+              {
+                "$ref": "#/components/schemas/UnknownOutcome"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "echo": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "wording": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wording"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "retcode"
+        ],
+        "title": "Reply[ImageContent]"
+      },
+      "Reply_ImageFile_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "retcode": {
+            "type": "integer",
+            "title": "Retcode"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageFile"
+              },
+              {
+                "$ref": "#/components/schemas/UnknownOutcome"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "echo": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "wording": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wording"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "retcode"
+        ],
+        "title": "Reply[ImageFile]"
+      },
       "Reply_InstanceStatus_": {
         "properties": {
           "status": {
@@ -15086,6 +15503,67 @@
           "retcode"
         ],
         "title": "Reply[MemberRemovalReceipt]"
+      },
+      "Reply_MessageFileDownload_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "retcode": {
+            "type": "integer",
+            "title": "Retcode"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MessageFileDownload"
+              },
+              {
+                "$ref": "#/components/schemas/UnknownOutcome"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "echo": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "wording": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wording"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "retcode"
+        ],
+        "title": "Reply[MessageFileDownload]"
       },
       "Reply_MessageId_": {
         "properties": {

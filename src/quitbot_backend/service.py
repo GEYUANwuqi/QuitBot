@@ -22,6 +22,7 @@ from .discovery import (
     scan_windows,
     windows_session_id,
 )
+from .qq_login import QQLoginManager
 from .reverse_ws import ReverseWebSocket
 from .runtime import AccountRuntime
 
@@ -108,6 +109,7 @@ class Service:
         runtime_factory=AccountRuntime,
         discover=scan_windows,
         resolve_profile=read_window_profile,
+        login_driver_factory=None,
     ):
         self.store, self.access = store, access
         self.management_port = management_port or store.current.webui.port
@@ -126,6 +128,7 @@ class Service:
         self._resolve_profile = resolve_profile
         self._discovery_task = None
         self._activated: dict[str, DiscoveredWindow] = {}
+        self.qq_login = QQLoginManager(login_driver_factory)
         webui = store.current.webui
         self.access.configure_login(
             webui.login_attempts, webui.login_retry_seconds, webui.session_hours
@@ -177,13 +180,19 @@ class Service:
             self._activated.clear()
         return self.discovery
 
-    async def activate_account(self, hwnd: int, revision: str) -> dict:
-        task = asyncio.create_task(self._activate_account(hwnd, revision))
+    async def activate_account(
+        self, hwnd: int, revision: str, expected_account_id: str | None = None
+    ) -> dict:
+        task = asyncio.create_task(
+            self._activate_account(hwnd, revision, expected_account_id)
+        )
         self._jobs.add(task)
         task.add_done_callback(self._jobs.discard)
         return await asyncio.shield(task)
 
-    async def _activate_account(self, hwnd: int, revision: str) -> dict:
+    async def _activate_account(
+        self, hwnd: int, revision: str, expected_account_id: str | None = None
+    ) -> dict:
         async with self._lock:
             if self.stopping.is_set():
                 raise ValueError("服务正在关闭")
@@ -209,6 +218,13 @@ class Service:
                 raise ValueError(
                     window.error
                     or "未能完整读取 QQ 号、昵称和头像，请确认窗口已登录后重试"
+                )
+            if (
+                expected_account_id is not None
+                and window.account_id != expected_account_id
+            ):
+                raise ValueError(
+                    "QQ 当前账号与登录面板显示的号码不同，请重新读取登录状态"
                 )
             account = next(
                 (a for a in config.accounts if a.account_id == window.account_id), None
@@ -416,6 +432,7 @@ class Service:
 
     async def close(self):
         self.stopping.set()
+        await self.qq_login.drain()
         if self._discovery_task is not None:
             await asyncio.shield(self._discovery_task)
         if self._jobs:
@@ -423,3 +440,4 @@ class Service:
         async with self._lock:
             for number in tuple(self.accounts):
                 await self._stop(number)
+        await self.qq_login.close()

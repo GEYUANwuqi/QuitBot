@@ -32,7 +32,7 @@ curl -fsSL https://raw.githubusercontent.com/GEYUANwuqi/QuitBot/master/scripts/i
 
 1. 检查 `uv`，缺少时直接报错，并给出安装入口。
 2. 解析最新正式版，下载对应的 `quitbot-<版本>.tar.gz` 源码包。
-3. 在当前目录创建 `QuitBot_<实际版本>`，例如 `QuitBot_0.13.0`，解压前后端源码、锁文件、文档和预构建控制台。
+3. 在当前目录创建 `QuitBot_<实际版本>`，例如 `QuitBot_0.15.0`，解压前后端源码、锁文件、文档和预构建控制台。
 4. 在项目目录执行 `uv sync --locked --no-dev`，由 uv 准备 Python 和运行依赖。
 5. 输出项目路径与启动命令。
 
@@ -42,7 +42,7 @@ curl -fsSL https://raw.githubusercontent.com/GEYUANwuqi/QuitBot/master/scripts/i
 
 ### Windows 或已有 X11 桌面
 
-安装完成后，按脚本输出进入 `QuitBot_<实际版本>` 目录。在同一图形会话中登录官方 QQ，再启动后端：
+安装完成后，按脚本输出进入 `QuitBot_<实际版本>` 目录。启动后端后，在控制台完成 QQ 登录：
 
 ```sh
 uv run --locked --no-dev python -m quitbot_backend
@@ -52,13 +52,17 @@ Linux 的 QQ 与后端需共享 `DISPLAY`、`XAUTHORITY` 和 `DBUS_SESSION_BUS_A
 
 ### 纯无头 Linux
 
-进入安装目录，以普通 Linux 用户运行下面的入口，它同时启动 QQ 和后端：
+进入安装目录，以普通 Linux 用户运行下面的入口，它创建持久图形会话并启动后端：
 
 ```bash
 uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /opt/QQ/qq
 ```
 
-按实际安装位置修改 QQ 路径。入口创建独立 D-Bus、带认证的 Xvfb、Openbox 和系统托盘，并自动启用辅助技术。通过按需连接的桌面查看工具登录 QQ，查看连接断开后图形会话继续运行。QQ 收起到托盘后，点击桌面左上角的 QQ 托盘图标恢复窗口；监听期间保持聊天窗口展开。查看工具绑定回环地址并通过 SSH 转发访问；长期运行时由 systemd 监督此入口。多个实例分别使用独立用户 / 图形会话、显示编号和配置位置，详情见 [README](../README.md#快速开始)。
+按实际安装位置修改 QQ 路径。入口创建独立 D-Bus、带认证的 Xvfb、Openbox 和系统托盘，并自动启用辅助技术。浏览器进入控制台的「账号连接」，点击「启动 QQ / 登录」。选择已保存账号，或使用手机 QQ 扫描网页上的二维码并确认；过期后点击「刷新二维码」。页面显示 QQ 号、昵称和头像后，点击「连接此账号」。登录无需桌面查看工具。QQ 退出后，虚拟显示与后端继续运行，可从网页再次启动。
+
+已有桌面启动方式也支持网页登录。QQ 安装位置可通过后端环境变量 `QUITBOT_QQ_EXECUTABLE` 指定；无头入口的 `--qq` 会设置它。网页接口只操作本机配置的 QQ 程序。Linux 已实测保存账号与二维码流程；Windows 使用同一页面流程和独立 UIA 提供者，登录控件兼容性待实机交叉验证。
+
+长期运行时由 systemd 监督此入口。多个实例分别使用独立用户 / 图形会话、显示编号和配置位置，详情见 [README](../README.md#快速开始)。监听期间保持独立聊天窗口展开；Linux 后台树停更时，在账号设置启用独立窗口刷新。
 
 ## 首次启动
 
@@ -71,6 +75,7 @@ uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /o
 | `config/accounts.json` | WebUI 与各 QQ 账号配置，首次创建时账号列表为空 |
 | `config/security.json` | 密码的随机盐、摘要和首次改密状态 |
 | `config/state/<account_id>/messages.sqlite3` | 按账号隔离的本地消息 ID 映射，按需创建 |
+| `config/state/<account_id>/images/` | 从 QQ 导出的原始图片缓存，单图 / 单消息 32 MiB，按账号最多 512 MiB；写入时清理超量或 7 天未使用的资源 |
 
 账号配置保留已有值。`config/` 的运行数据由 Git 忽略并从构建产物中排除。管理服务默认监听 `127.0.0.1:6699`，账号列表为空时也可连接；每个账号独立配置 HTTP、正向 WS 和反向 WS。
 
@@ -117,7 +122,7 @@ uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /o
 
 页面读取缓存不会重新探查。打开 QQ 或窗口变化后，点击「刷新探查」。同时发起的刷新共用一次扫描，已退出或无法读取进程信息的窗口跳过。Windows 列表同时显示后端的会话 ID，使用 Anode 时将 QQ 与后端放在同一子会话；Linux 的该字段为 `null`，窗口范围由 `DISPLAY` 决定。
 
-点击「连接账号」后核对所选窗口的进程，沿用桌面事务锁读取该账号的昵称、QQ 号与头像。读取 QQ 号会打开并关闭本人资料卡，头像从无障碍接口定位的头像控件区域读取。三项资料完整后保存账号和窗口，保留已有监听与网络配置，并在绑定时再次核验 QQ 号。连接成功的账号资料缓存在 `activated_accounts`，供账号设置列表使用。
+点击「登录 / 连接账号」后可完成 QQ 登录；已登录时读取资料，点击「连接此账号」保存。连接时核对所选窗口的进程，沿用桌面事务锁读取该账号的昵称、QQ 号与头像。读取 QQ 号会打开并关闭本人资料卡，头像从无障碍接口定位的头像控件区域读取。三项资料完整后保存账号和窗口，保留已有监听与网络配置，并在绑定时再次核验 QQ 号。连接成功的账号资料缓存在 `activated_accounts`，供账号设置列表使用。
 
 普通刷新保留仍存在的进程窗口的资料缓存；窗口消失或所属进程变化时隐藏对应账号，其配置保留。在 QQ 中切换登录账号后需重新连接以更新身份资料。新账号默认关闭三种对外连接，控制台通过独立账号通道操作。
 

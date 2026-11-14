@@ -605,6 +605,12 @@ class Automation:
                 self.desktop.type_text(" " * trailing)
         checked()
 
+    def copied_rich_text(self):
+        return self.desktop.copied_rich_text()
+
+    def copied_files(self):
+        return self.desktop.copied_files()
+
     def GetClipboardText(self):
         return self.desktop.clipboard_text()
 

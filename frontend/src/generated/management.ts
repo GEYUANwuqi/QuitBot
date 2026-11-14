@@ -141,6 +141,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/qq/login/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Qq Login */
+        post: operations["start_qq_login_api_qq_login_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/qq/login/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read Qq Login */
+        post: operations["read_qq_login_api_qq_login_state_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/qq/login/action": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Act Qq Login */
+        post: operations["act_qq_login_api_qq_login_action_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/accounts/activate": {
         parameters: {
             query?: never;
@@ -168,6 +219,8 @@ export interface components {
             hwnd: number;
             /** Revision */
             revision: string;
+            /** Expected Account Id */
+            expected_account_id?: string | null;
         };
         /** AccountConfig */
         AccountConfig: {
@@ -341,6 +394,60 @@ export interface components {
             /** Current Password */
             current_password?: string | null;
         };
+        /** QQLoginAction */
+        QQLoginAction: {
+            /** Login Id */
+            login_id: string;
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "login" | "qr" | "refresh_qr" | "back" | "open_existing";
+            /** Account Key */
+            account_key?: string | null;
+        };
+        /** QQLoginRequest */
+        QQLoginRequest: {
+            /** Login Id */
+            login_id: string;
+        };
+        /** QQLoginStart */
+        QQLoginStart: {
+            /** Hwnd */
+            hwnd?: number | null;
+            /** Pid */
+            pid?: number | null;
+            /**
+             * New Instance
+             * @default false
+             */
+            new_instance: boolean;
+        };
+        /** QQLoginView */
+        QQLoginView: {
+            /** Login Id */
+            login_id: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "starting" | "accounts" | "qr" | "expired" | "waiting" | "existing" | "logged_in" | "closed";
+            /** Accounts */
+            accounts?: components["schemas"]["SavedQQAccount"][];
+            /** Qr Image */
+            qr_image?: string | null;
+            /**
+             * Can Go Back
+             * @default false
+             */
+            can_go_back: boolean;
+            profile?: components["schemas"]["DiscoveredWindow"] | null;
+            /**
+             * Message
+             * @default
+             */
+            message: string;
+        };
         /** ReverseWSConfig */
         ReverseWSConfig: {
             /**
@@ -425,6 +532,20 @@ export interface components {
              */
             listener_state: string;
             reverse_ws?: components["schemas"]["ReverseWSStatus"];
+        };
+        /** SavedQQAccount */
+        SavedQQAccount: {
+            /** Key */
+            key: string;
+            /** Account Id */
+            account_id?: string | null;
+            /** Nickname */
+            nickname: string;
+            /**
+             * Selected
+             * @default false
+             */
+            selected: boolean;
         };
         /** ServiceConfig */
         ServiceConfig: {
@@ -754,6 +875,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DiscoveryView"];
+                };
+            };
+        };
+    };
+    start_qq_login_api_qq_login_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QQLoginStart"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QQLoginView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_qq_login_api_qq_login_state_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QQLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QQLoginView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    act_qq_login_api_qq_login_action_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QQLoginAction"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QQLoginView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -136,3 +136,73 @@ def require_unlocked(auto):
             raise DesktopLocked(
                 "Windows lock-screen occlusion is present; no UI input performed"
             )
+
+
+def copied_files():
+    """Read only CF_HDROP file paths explicitly placed on the clipboard by QQ."""
+    import ctypes
+    from ctypes import wintypes
+
+    from ...errors import ControlUnavailable
+
+    user, shell = ctypes.windll.user32, ctypes.windll.shell32
+    user.OpenClipboard.argtypes, user.OpenClipboard.restype = [wintypes.HWND], wintypes.BOOL
+    user.GetClipboardData.argtypes, user.GetClipboardData.restype = [wintypes.UINT], wintypes.HANDLE
+    user.CloseClipboard.argtypes, user.CloseClipboard.restype = [], wintypes.BOOL
+    shell.DragQueryFileW.argtypes = [wintypes.HANDLE, wintypes.UINT, wintypes.LPWSTR, wintypes.UINT]
+    shell.DragQueryFileW.restype = wintypes.UINT
+    if not user.OpenClipboard(None):
+        raise ControlUnavailable('无法打开 Windows 剪贴板')
+    try:
+        handle = user.GetClipboardData(15)  # CF_HDROP, owned by the clipboard.
+        if not handle:
+            raise ControlUnavailable('QQ 未向剪贴板导出原始图片文件')
+        count = shell.DragQueryFileW(handle, 0xFFFFFFFF, None, 0)
+        if not 1 <= count <= 8:
+            raise ControlUnavailable('QQ 剪贴板文件数量异常')
+        paths = []
+        for index in range(count):
+            size = shell.DragQueryFileW(handle, index, None, 0)
+            if not 1 <= size <= 32767:
+                raise ControlUnavailable('QQ 剪贴板文件路径长度异常')
+            buffer = ctypes.create_unicode_buffer(size + 1)
+            if shell.DragQueryFileW(handle, index, buffer, size + 1) != size:
+                raise ControlUnavailable('QQ 剪贴板文件路径读取失败')
+            paths.append(buffer.value)
+        return paths
+    finally:
+        user.CloseClipboard()
+
+
+def copied_rich_text():
+    import ctypes
+    from ctypes import wintypes
+
+    from ...errors import ControlUnavailable
+
+    user, kernel = ctypes.windll.user32, ctypes.windll.kernel32
+    user.RegisterClipboardFormatW.argtypes, user.RegisterClipboardFormatW.restype = [wintypes.LPCWSTR], wintypes.UINT
+    user.OpenClipboard.argtypes, user.OpenClipboard.restype = [wintypes.HWND], wintypes.BOOL
+    user.GetClipboardData.argtypes, user.GetClipboardData.restype = [wintypes.UINT], wintypes.HANDLE
+    user.CloseClipboard.argtypes, user.CloseClipboard.restype = [], wintypes.BOOL
+    kernel.GlobalSize.argtypes, kernel.GlobalSize.restype = [wintypes.HANDLE], ctypes.c_size_t
+    kernel.GlobalLock.argtypes, kernel.GlobalLock.restype = [wintypes.HANDLE], ctypes.c_void_p
+    kernel.GlobalUnlock.argtypes, kernel.GlobalUnlock.restype = [wintypes.HANDLE], wintypes.BOOL
+    if not user.OpenClipboard(None):
+        raise ControlUnavailable('无法打开 Windows 剪贴板')
+    try:
+        handle = user.GetClipboardData(user.RegisterClipboardFormatW('QQ_Unicode_RichEdit_Format'))
+        size = kernel.GlobalSize(handle) if handle else 0
+        if not 0 < size <= 65536:
+            raise ControlUnavailable('QQ 未提供有效的富文本剪贴板格式')
+        pointer = kernel.GlobalLock(handle)
+        if not pointer:
+            raise ControlUnavailable('无法读取 QQ 富文本剪贴板')
+        try:
+            data = ctypes.string_at(pointer, size)
+        finally:
+            kernel.GlobalUnlock(handle)
+        encoding = 'utf-16-le' if data.startswith(b'<\x00') else 'utf-8'
+        return data.decode(encoding).rstrip('\x00')
+    finally:
+        user.CloseClipboard()

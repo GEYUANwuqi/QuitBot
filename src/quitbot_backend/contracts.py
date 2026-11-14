@@ -126,6 +126,26 @@ class ProtocolMessage(BaseModel):
     message: list[ProtocolSegment]
 
 
+class MessageFileDownload(BaseModel):
+    target_id: str
+    ui_message_id: str
+    name: str
+    local_path: str
+    size_bytes: int
+    sha256: str
+    verified_in_ui: bool
+
+
+class ImageFile(BaseModel):
+    file: str
+
+
+class ImageContent(ImageFile):
+    base64: str
+    size: int
+    mime_type: str
+
+
 class RequestDecision(BaseModel):
     ui_key: str
     kind: Literal["friend", "group"]
@@ -328,6 +348,9 @@ for name, scope in (
         write=True,
     )
 add("get_msg", ProtocolMessage, message)
+add("x_download_message_file", MessageFileDownload, {**message, "destination": (Text, ...), "expected_name": (Text, ...)}, write=True, summary="通过消息的另存为下载私聊或群聊文件")
+add("get_image", ImageFile, {"file": (Text, ...)}, summary="获取当前账号已导出图片的本地路径")
+add("x_get_image", ImageContent, {"file": (Text, ...)}, summary="通过认证连接读取图片原始字节的 base64")
 add("get_group_info", GroupInfo, {**group, "no_cache": (StrictBool, False)})
 add("get_group_member_list", list[MemberInfo], group)
 add(

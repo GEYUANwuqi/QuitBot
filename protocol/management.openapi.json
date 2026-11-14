@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "QuitBot Management API",
-    "version": "0.14.0"
+    "version": "0.15.0"
   },
   "paths": {
     "/health": {
@@ -289,6 +289,144 @@
         ]
       }
     },
+    "/api/qq/login/start": {
+      "post": {
+        "tags": [
+          "qq-login"
+        ],
+        "summary": "Start Qq Login",
+        "operationId": "start_qq_login_api_qq_login_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QQLoginStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QQLoginView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/qq/login/state": {
+      "post": {
+        "tags": [
+          "qq-login"
+        ],
+        "summary": "Read Qq Login",
+        "operationId": "read_qq_login_api_qq_login_state_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QQLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QQLoginView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/qq/login/action": {
+      "post": {
+        "tags": [
+          "qq-login"
+        ],
+        "summary": "Act Qq Login",
+        "operationId": "act_qq_login_api_qq_login_action_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QQLoginAction"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QQLoginView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/accounts/activate": {
       "post": {
         "tags": [
@@ -349,6 +487,18 @@
             "type": "string",
             "pattern": "^[0-9a-f]{64}$",
             "title": "Revision"
+          },
+          "expected_account_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[1-9][0-9]*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Account Id"
           }
         },
         "additionalProperties": false,
@@ -797,6 +947,164 @@
         ],
         "title": "PasswordChange"
       },
+      "QQLoginAction": {
+        "properties": {
+          "login_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 32,
+            "title": "Login Id"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "login",
+              "qr",
+              "refresh_qr",
+              "back",
+              "open_existing"
+            ],
+            "title": "Action"
+          },
+          "account_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "login_id",
+          "action"
+        ],
+        "title": "QQLoginAction"
+      },
+      "QQLoginRequest": {
+        "properties": {
+          "login_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 32,
+            "title": "Login Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "login_id"
+        ],
+        "title": "QQLoginRequest"
+      },
+      "QQLoginStart": {
+        "properties": {
+          "hwnd": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hwnd"
+          },
+          "pid": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pid"
+          },
+          "new_instance": {
+            "type": "boolean",
+            "title": "New Instance",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "QQLoginStart"
+      },
+      "QQLoginView": {
+        "properties": {
+          "login_id": {
+            "type": "string",
+            "title": "Login Id"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "starting",
+              "accounts",
+              "qr",
+              "expired",
+              "waiting",
+              "existing",
+              "logged_in",
+              "closed"
+            ],
+            "title": "State"
+          },
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/SavedQQAccount"
+            },
+            "type": "array",
+            "title": "Accounts"
+          },
+          "qr_image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qr Image"
+          },
+          "can_go_back": {
+            "type": "boolean",
+            "title": "Can Go Back",
+            "default": false
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DiscoveredWindow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "login_id",
+          "state"
+        ],
+        "title": "QQLoginView"
+      },
       "ReverseWSConfig": {
         "properties": {
           "enabled": {
@@ -964,6 +1272,40 @@
           "last_error"
         ],
         "title": "RuntimeStatus"
+      },
+      "SavedQQAccount": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "nickname": {
+            "type": "string",
+            "title": "Nickname"
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "nickname"
+        ],
+        "title": "SavedQQAccount"
       },
       "ServiceConfig": {
         "properties": {
@@ -1245,6 +1587,18 @@
       "x_set_config": {
         "params": "ConfigUpdate",
         "result": "ConfigView"
+      },
+      "x_start_qq_login": {
+        "params": "QQLoginStart",
+        "result": "QQLoginView"
+      },
+      "x_get_qq_login": {
+        "params": "QQLoginRequest",
+        "result": "QQLoginView"
+      },
+      "x_submit_qq_login": {
+        "params": "QQLoginAction",
+        "result": "QQLoginView"
       }
     },
     "session": {

@@ -43,7 +43,7 @@ import {
   persist,
   saved,
 } from "./types";
-import { Badge } from "./ui";
+import { Badge, Select } from "./ui";
 
 const navigation: {
   group: string;
@@ -91,6 +91,27 @@ export default function App({
   onPasswordChange: () => void;
 }) {
   const client = useRef(new Connection());
+  const clients = useRef(new Map<string, Connection>());
+  const opening = useRef(new Map<string, Promise<Connection>>());
+  const mounted = useRef(true);
+  const [consoleAccounts, setConsoleAccounts] = useState<string[]>([]);
+  const [closedAccounts] = useState(() => {
+    try {
+      const value: unknown = JSON.parse(
+        sessionStorage.getItem("quitbot.closed-accounts") || "[]",
+      );
+      return new Set<string>(
+        Array.isArray(value)
+          ? value.filter(
+              (id): id is string =>
+                typeof id === "string" && /^[1-9][0-9]*$/.test(id),
+            )
+          : [],
+      );
+    } catch {
+      return new Set<string>();
+    }
+  });
   const lock = useRef(false);
   const generation = useRef(0);
   const selectedProfile = useRef<Profile | undefined>(undefined);
@@ -194,9 +215,9 @@ export default function App({
   const updateAccountStatus = useCallback((next: Status) => {
     if (selectedProfile.current?.id === next.account_id) applyStatus(next);
   }, []);
-  useEffect(() => {
-    const connection = client.current;
+  function configureConnection(connection: Connection, profile: Profile) {
     connection.onEvent = (packet) => {
+      if (selectedProfile.current?.id !== profile.id) return;
       setEvents((old) =>
         [{ id: ++eventId.current, at: Date.now(), packet }, ...old].slice(
           0,
@@ -225,6 +246,13 @@ export default function App({
       }
     };
     connection.onClose = (reason) => {
+      if (clients.current.get(profile.id) !== connection) return;
+      clients.current.delete(profile.id);
+      setConsoleAccounts((old) => old.filter((id) => id !== profile.id));
+      if (selectedProfile.current?.id !== profile.id) {
+        if (reason.startsWith("1012")) void restoreConsole(profile);
+        return;
+      }
       const epoch = ++generation.current;
       setConnected(false);
       setStatus(undefined);
@@ -241,14 +269,85 @@ export default function App({
         message: `${reason}。请先核对在途操作结果，再重新连接。`,
       });
     };
+  }
+
+  function openConsole(profile: Profile): Promise<Connection> {
+    const pending = opening.current.get(profile.id);
+    if (pending) return pending;
+    const existing = clients.current.get(profile.id);
+    if (existing) return Promise.resolve(existing);
+    const connection = new Connection();
+    clients.current.set(profile.id, connection);
+    configureConnection(connection, profile);
+    const task = connection
+      .connect(profile.url, { accessToken })
+      .then(() => {
+        if (!mounted.current || clients.current.get(profile.id) !== connection)
+          throw new Error("账号连接已取消");
+        setConsoleAccounts((old) =>
+          old.includes(profile.id) ? old : [...old, profile.id],
+        );
+        return connection;
+      })
+      .catch((cause) => {
+        if (clients.current.get(profile.id) === connection) {
+          clients.current.delete(profile.id);
+          connection.close();
+        }
+        throw cause;
+      })
+      .finally(() => {
+        if (opening.current.get(profile.id) === task)
+          opening.current.delete(profile.id);
+      });
+    opening.current.set(profile.id, task);
+    return task;
+  }
+
+  async function restoreConsole(profile: Profile) {
+    const deadline = Date.now() + 45000;
+    try {
+      while (
+        mounted.current &&
+        !closedAccounts.has(profile.id) &&
+        Date.now() < deadline
+      ) {
+        if (clients.current.has(profile.id)) return;
+        const view = (await management.callRaw("x_get_config")) as
+          managementTypes["schemas"]["ConfigView"];
+        if (!view.config.accounts?.some((item) => item.account_id === profile.id))
+          return;
+        if (closedAccounts.has(profile.id) || !mounted.current) return;
+        if (view.accounts.some((item) => item.account_id === profile.id)) {
+          await openConsole(profile);
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    } catch {
+      // The account card remains disconnected; no business action is replayed.
+    }
+  }
+
+  useEffect(() => {
+    for (const profile of profiles) {
+      if (!closedAccounts.has(profile.id)) void openConsole(profile).catch(() => {});
+    }
+  }, [profiles]);
+
+  useEffect(() => {
+    mounted.current = true;
     const handleRoute = () => {
       setPage(route());
       setSidebar(false);
     };
     window.addEventListener("hashchange", handleRoute);
     return () => {
+      mounted.current = false;
       generation.current++;
-      connection.close();
+      for (const connection of clients.current.values()) connection.close();
+      clients.current.clear();
+      opening.current.clear();
       window.removeEventListener("hashchange", handleRoute);
     };
   }, []);
@@ -410,7 +509,7 @@ export default function App({
     }
   }
 
-  async function connect(profile: Profile, restoring = false) {
+  async function connect(profile: Profile, restoring = false, openSettings = true) {
     if (lock.current) return;
     lock.current = true;
     setBusy("连接账号服务");
@@ -420,10 +519,14 @@ export default function App({
     else generation.current++;
     selectedProfile.current = profile;
     const epoch = generation.current;
+    let connection: Connection | undefined;
     try {
       if (!accessToken) throw new Error("请重新登录");
-      await client.current.connect(profile.url, { accessToken });
+      closedAccounts.delete(profile.id);
+      rememberClosedAccounts();
+      connection = await openConsole(profile);
       if (epoch !== generation.current) return;
+      client.current = connection;
       // Metadata reads never bind a native QQ window.
       const inventory = await client.current.call("x_get_api_catalog", {});
       const next = await client.current.call("x_get_runtime_status", {});
@@ -438,10 +541,14 @@ export default function App({
         ok: true,
         id: Date.now(),
       });
-      if (!restoring) navigate("accounts");
+      if (!restoring && openSettings) navigate("accounts");
     } catch (cause) {
       if (epoch !== generation.current) return;
-      client.current.close();
+      if (connection && clients.current.get(profile.id) === connection) {
+        clients.current.delete(profile.id);
+        connection.close();
+        setConsoleAccounts((old) => old.filter((id) => id !== profile.id));
+      }
       resetAccount();
       setBusy("");
       setError({
@@ -453,10 +560,25 @@ export default function App({
       if (epoch === generation.current) setBusy("");
     }
   }
-  function disconnect() {
+  function rememberClosedAccounts() {
+    try {
+      sessionStorage.setItem(
+        "quitbot.closed-accounts",
+        JSON.stringify([...closedAccounts]),
+      );
+    } catch {
+      // Keep explicit disconnects in memory when tab storage is unavailable.
+    }
+  }
+  function disconnect(accountId: string) {
     if (lock.current) return;
-    client.current.close();
-    resetAccount();
+    closedAccounts.add(accountId);
+    rememberClosedAccounts();
+    const connection = clients.current.get(accountId);
+    clients.current.delete(accountId);
+    connection?.close();
+    setConsoleAccounts((old) => old.filter((id) => id !== accountId));
+    if (selectedProfile.current?.id === accountId) resetAccount();
     setError(undefined);
     setToast(undefined);
   }
@@ -510,8 +632,12 @@ export default function App({
         </nav>
         <div className="sidebar-bottom">
           <div>
-            <span className={`status-dot ${connected ? "online" : ""}`} />
-            <strong>{connected ? "账号服务已连接" : "账号服务未连接"}</strong>
+            <span className={`status-dot ${consoleAccounts.length ? "online" : ""}`} />
+            <strong>
+              {consoleAccounts.length
+                ? `已连接 ${consoleAccounts.length} 个账号`
+                : "账号服务未连接"}
+            </strong>
           </div>
           <small>每个账号，独立连接</small>
           <span className="sidebar-version">
@@ -541,9 +667,9 @@ export default function App({
                 minute: "2-digit",
               })}
             </span>
-            <span className={`connection-label ${connected ? "online" : ""}`}>
-              <span className={`status-dot ${connected ? "online" : ""}`} />
-              {connected ? "账号服务已连接" : "账号未连接"}
+            <span className={`connection-label ${consoleAccounts.length ? "online" : ""}`}>
+              <span className={`status-dot ${consoleAccounts.length ? "online" : ""}`} />
+              {consoleAccounts.length ? `已连接 ${consoleAccounts.length} 个账号` : "账号未连接"}
             </span>
             <span className="topbar-divider" />
             <button
@@ -587,6 +713,23 @@ export default function App({
               <p>{descriptions[page]}</p>
             </div>
             <div className="heading-actions">
+              {showBusinessStatus && (
+                <Select
+                  label="账号"
+                  value={status?.account_id || ""}
+                  options={profiles
+                    .filter((profile) => consoleAccounts.includes(profile.id))
+                    .map((profile) => ({
+                      value: profile.id,
+                      label: `${profile.name} · ${profile.id}`,
+                    }))}
+                  disabled={!!busy}
+                  onChange={(id) => {
+                    const profile = profiles.find((item) => item.id === id);
+                    if (profile) void connect(profile, false, false);
+                  }}
+                />
+              )}
               {showBusinessStatus && (
                 <Badge tone={status?.connected ? "success" : ""}>
                   <span
@@ -642,9 +785,7 @@ export default function App({
           {page === "connections" && (
             <ConnectionPage
               management={management}
-              activeId={status?.account_id}
-              connected={connected}
-              status={status}
+              connectedAccounts={consoleAccounts}
               busy={!!busy}
               onSetup={() => navigate("accounts")}
               onAccounts={syncAccounts}

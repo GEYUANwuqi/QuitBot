@@ -438,6 +438,15 @@ class AsyncConversation:
         options = {"refresh": True} if refresh else {}
         return await self.instance._call(self.id, "detached_messages", **options)
 
+    async def download_message_file(self, message_id, destination, *, expected_name):
+        return await self.instance._call(self.id, "download_message_file", message_id, destination, expected_name=expected_name)
+
+    async def export_face_ids(self, message_id):
+        return await self.instance._call(self.id, "export_face_ids", message_id)
+
+    async def export_images(self, message_id):
+        return await self.instance._call(self.id, "export_images", message_id)
+
     async def get_message(self, message_id):
         return await self.instance._call(self.id, "get_message", message_id)
 

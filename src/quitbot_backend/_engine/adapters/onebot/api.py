@@ -1,5 +1,8 @@
 """Bounded OneBot application adapter; no native selectors."""
 
+import asyncio
+import base64
+import mimetypes
 import re
 import sqlite3
 import time
@@ -31,6 +34,7 @@ from quitbot_backend._engine.errors import (
     QuitBotError,
     SendOutcomeUnknown,
 )
+from quitbot_backend._engine.infrastructure.storage.media import ImageCache
 from quitbot_backend._engine.infrastructure.storage.message_index import MessageIndex
 from quitbot_backend._engine.operations import validate_text
 from quitbot_backend._engine.platforms import TRANSPORT_NAME
@@ -75,7 +79,7 @@ SECONDARY_ACTIONS = (
 
 
 class OneBotAdapter:
-    def __init__(self, qq, self_id, *, index=None, member_ids=None):
+    def __init__(self, qq, self_id, *, index=None, member_ids=None, image_cache=None):
         self.qq = qq
         self.self_id = numeric_id(self_id)
         self.index = index or MessageIndex()
@@ -87,6 +91,9 @@ class OneBotAdapter:
         self._ui_member_ids = {}
         self._request_flags = {}
         self._message_actors = OrderedDict()
+        self.image_cache = image_cache
+        self._images = OrderedDict()
+        self._faces = OrderedDict()
 
     def _remember_actor(self, target, ui_id, user_id):
         key = (target.kind, target.id, str(ui_id))
@@ -275,6 +282,41 @@ class OneBotAdapter:
             else None
         )
 
+    async def prepare_message(self, scope, message):
+        key = (scope.target.kind, scope.target.id, message.id)
+        if message.face_count and key not in self._faces:
+            try:
+                faces = await scope.export_face_ids(message.id)
+                if len(faces) == message.face_count:
+                    self._faces[key] = faces
+                    self._faces.move_to_end(key)
+                    while len(self._faces) > 1024:
+                        self._faces.popitem(last=False)
+            except (QuitBotError, OSError, ValueError):
+                pass
+        if not self.image_cache or not message.attachments or any(a.kind != "image" for a in message.attachments):
+            return
+        key = (scope.target.kind, scope.target.id, message.id)
+        cached = self._images.get(key)
+        if cached:
+            try:
+                for name in cached:
+                    self.image_cache.get(name)
+                return
+            except ValueError:
+                self._images.pop(key, None)
+        try:
+            images = await scope.export_images(message.id)
+            if len(images) != len(message.attachments):
+                return
+            names = await asyncio.to_thread(lambda: [self.image_cache.put(data) for data in images])
+        except (QuitBotError, OSError, ValueError):
+            return
+        self._images[key] = names
+        self._images.move_to_end(key)
+        while len(self._images) > 1024:
+            self._images.popitem(last=False)
+
     def message_event(self, target, message):
         message_id = self.index.register(self.self_id, target, message.id)
         user_id = self._user_id(target, message)
@@ -294,12 +336,42 @@ class OneBotAdapter:
                 if message.direction != "outgoing"
                 else "self"
             )
+        images = self._images.get((target.kind, target.id, message.id), [])
+        if images:
+            try:
+                for name in images:
+                    self.image_cache.get(name)
+            except (OSError, ValueError):
+                images = []
+        faces = self._faces.get((target.kind, target.id, message.id), [])
+        face_parts = sum(p.kind == "face" for p in message.parts)
+        faces_ready = bool(faces) and len(faces) == message.face_count == face_parts
+        face_index = 0
+        image_parts = sum(p.kind == "image" for p in message.parts)
+        media_ready = bool(images) and len(images) == len(message.attachments) and (
+            image_parts == len(images) or not message.parts and not message.text and len(images) == 1
+        )
         parts = []
         raw_parts = []
+        image_index = 0
+        def append_image(name):
+            data = {"file": name, "url": self.image_cache.get(name).as_uri()}
+            parts.append(asdict(MessageSegment("image", data)))
+            raw_parts.append(f"[CQ:image,file={name},url={cq_escape(data['url']).replace(',', '&#44;')}]")
         for part in message.parts:
             if part.kind == "text":
                 parts.append(asdict(MessageSegment("text", {"text": part.text})))
                 raw_parts.append(cq_escape(part.text))
+            elif part.kind == "face":
+                if faces_ready:
+                    number = faces[face_index]
+                    parts.append(asdict(MessageSegment("face", {"id": str(number)})))
+                    raw_parts.append(f"[CQ:face,id={number}]")
+                    face_index += 1
+            elif part.kind == "image":
+                if media_ready:
+                    append_image(images[image_index])
+                    image_index += 1
             else:
                 number = (
                     "all"
@@ -318,11 +390,15 @@ class OneBotAdapter:
                     break
                 parts.append(asdict(MessageSegment("at", {"qq": str(number)})))
                 raw_parts.append(f"[CQ:at,qq={number}]")
+        if media_ready and not message.parts:
+            append_image(images[0])
         if (
             user_id is None
-            or message.attachments
-            or message.face_count
-            or message.kind not in ("text", "mixed")
+            or (message.attachments and not media_ready)
+            or (message.face_count and not faces_ready)
+            or message.kind not in ("text", "mixed", "image", "face")
+            or message.kind == "face" and not faces_ready
+            or message.kind == "image" and not media_ready
             or "unresolved_mention" in metadata
         ):
             # UI-only media and unresolved senders cannot honestly be represented
@@ -420,9 +496,15 @@ class OneBotAdapter:
             raise ValueError("Empty message")
         if len(segments) == 1 and segments[0].type == "image":
             data = segments[0].data
-            if set(data) != {"file"} or not isinstance(data["file"], str):
+            if (
+                set(data) - {"file", "url"}
+                or not isinstance(data.get("file"), str)
+                or "url" in data and not isinstance(data["url"], str)
+            ):
                 raise Unsupported("Only one local image file is supported")
             path = data["file"]
+            if self.image_cache and ImageCache.valid_name(path):
+                path = str(self.image_cache.get(path))
             if path.startswith("file://"):
                 parsed = urlparse(path)
                 if parsed.netloc not in ("", "localhost"):
@@ -518,6 +600,7 @@ class OneBotAdapter:
             kind, number, ui_id = self.index.resolve(self.self_id, params["message_id"])
             scope = self._scope(kind, number)
             message = await scope.get_message(ui_id)
+            await self.prepare_message(scope, message)
             event = self.message_event(scope.target, message)
             if event["post_type"] != "message":
                 raise Unsupported(
@@ -531,6 +614,19 @@ class OneBotAdapter:
                 "message": event["message"],
                 "_quitbot": event["_quitbot"],
             }
+        if action == "x_download_message_file":
+            kind, number, ui_id = self.index.resolve(self.self_id, params["message_id"])
+            scope = self._scope(kind, number)
+            return await scope.download_message_file(ui_id, params["destination"], expected_name=params["expected_name"])
+        if action in ("get_image", "x_get_image"):
+            if self.image_cache is None:
+                raise Unsupported("Image cache is unavailable")
+            path = self.image_cache.get(params["file"])
+            if action == "get_image":
+                return {"file": str(path)}
+            data = await asyncio.to_thread(path.read_bytes)
+            return {"file": path.name, "base64": base64.b64encode(data).decode("ascii"),
+                    "size": len(data), "mime_type": mimetypes.guess_type(path.name)[0] or "application/octet-stream"}
         if action == "can_send_image":
             return {"yes": True}
         if action == "can_send_record":
@@ -1016,6 +1112,9 @@ class OneBotAdapter:
                     "send_private_msg",
                     "send_msg",
                     "get_msg",
+                    "get_image",
+                    "x_get_image",
+                    "x_download_message_file",
                     "get_login_info",
                     "get_version_info",
                     "x_get_client_version",

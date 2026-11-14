@@ -22,6 +22,12 @@ class Automation:
     def file_picker(self, backend, owner):
         return find_file_picker(backend, owner)
 
+    def copied_rich_text(self):
+        return desktop.copied_rich_text()
+
+    def copied_files(self):
+        return desktop.copied_files()
+
     def native_cards(self, pid):
         return desktop.native_cards(self, pid)
 

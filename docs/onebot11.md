@@ -2,15 +2,16 @@
 
 QuitBot 使用 OneBot v11 的动作请求与回执格式，适配部分标准动作和事件。数据来自 QQ 已加载的原生界面，字段范围由可读取内容决定。
 
-对照 [OneBot v11 公开 API](https://github.com/botuniverse/onebot-11/blob/master/api/public.md)，38 个标准动作名中已适配 20 个，另有 5 个社区扩展动作和 103 个 `x_` 动作，共 128 个账号动作。各动作支持的参数、返回值和条件见下表。
+对照 [OneBot v11 公开 API](https://github.com/botuniverse/onebot-11/blob/master/api/public.md)，38 个标准动作名中已适配 21 个，另有 5 个社区扩展动作和 105 个 `x_` 动作，共 131 个账号动作。各动作支持的参数、返回值和条件见下表。
 
 ## 已适配的标准动作
 
 | 动作 | 范围与差异 |
 | --- | --- |
-| `send_private_msg`、`send_group_msg`、`send_msg` | 配置内会话；纯文字、单本地图片、reply + 文字、群内单人 at + 文字。发送前校验完整消息形态；远程 URL、base64 媒体及多媒体混发尚未适配 |
+| `send_private_msg`、`send_group_msg`、`send_msg` | 配置内会话；纯文字、单本地图片或本账号缓存图片、reply + 文字、群内单人 at + 文字。发送前校验完整消息形态；远程 URL、base64 媒体及多媒体混发尚未适配 |
 | `delete_msg` | 撤回已映射且仍可定位的消息，受 QQ 权限和时间窗限制；可传 `expected_text` 核验内容 |
 | `get_msg` | 查询原生已加载消息；发送人或媒体字段不足时可改用 `x_get_ui_message`。返回值使用本地消息 ID 和观察时间，缺少 QQ 协议 `real_id` |
+| `get_image` | 输入收到的图片 `file` 标识，返回当前账号缓存中的本地绝对路径；保留原图字节和 GIF 动画 |
 | `get_login_info` | 返回绑定后已核验的 QQ 号与窗口昵称 |
 | `get_group_info` | 返回群号、名称和可见资料 `fields`；完整人数和群容量字段尚未适配 |
 | `get_group_member_info`、`get_group_member_list` | 已加载且解析到数字身份的成员，包含昵称、名片和角色；缺少加入时间、最后发言时间等字段 |
@@ -35,14 +36,14 @@ QuitBot 使用 OneBot v11 的动作请求与回执格式，适配部分标准动
 
 `x_like_friend` 执行单次原生点赞并读取界面计数文本。`x_get_targets` 返回配置内的会话列表。这两个动作分别独立于标准 `send_like` 和好友 / 群列表查询。
 
-正向 WS 使用 Bearer 请求头，或在首帧发送 `x_authenticate`。反向 WS 由 QuitBot 主动连接应用，握手携带 `X-Self-ID`、`X-Client-Role` 和可选接收端 Bearer 令牌，支持 Universal / API / Event 三种用途及断线重连。登录、会话、`x_get_config` 和 `x_set_config` 位于管理服务，独立于上述 128 个账号动作。连接格式见[接口调用](api.md)。
+正向 WS 使用 Bearer 请求头，或在首帧发送 `x_authenticate`。反向 WS 由 QuitBot 主动连接应用，握手携带 `X-Self-ID`、`X-Client-Role` 和可选接收端 Bearer 令牌，支持 Universal / API / Event 三种用途及断线重连。登录、会话、`x_get_config` 和 `x_set_config` 位于管理服务，独立于上述 131 个账号动作。连接格式见[接口调用](api.md)。
 
 ## 消息、通知与请求事件
 
 | 事件 | 已实现范围 | 转换条件 |
 | --- | --- | --- |
-| `message.group / private` | 新出现的已加载文字消息、可解析的 at 文本 | 群发送人具有数字身份映射 |
-| `quitbot.unresolved_message` | 媒体、卡片、随机表情，或身份、mention、face 字段不足的消息观察 | 使用 `reason` 和 `ui_message` 保留原因与原文 |
+| `message.group / private` | 新出现的已加载文字消息、可解析的 at 文本、已成功导出原文件的图片、已取得编号的普通 QQ 表情 | 群发送人具有数字身份映射 |
+| `quitbot.unresolved_message` | 未能导出的媒体、卡片、随机表情，或身份、mention、face 字段不足的消息观察 | 使用 `reason` 和 `ui_message` 保留原因与原文 |
 | `request.friend / group` | 新出现的 pending 请求卡片及当前实例 flag | 申请者与目标身份可确定；启动时已存在的卡片作为基线 |
 | `notice.group_ban` | 禁言 / 解除禁言系统行 | 操作者和成员身份完整且唯一 |
 | `notice.group_increase` | 可识别的邀请入群系统行 | 可见文本和数字身份足以关联入群对象 |
@@ -60,6 +61,16 @@ QuitBot 使用 OneBot v11 的动作请求与回执格式，适配部分标准动
 
 监听依赖 GUI 轮询和后台界面刷新，事件范围限本次可读取的内容。当前提供实时推送，标准心跳和断线补发尚未适配。
 
+## 图片、表情与文件资源
+
+收到图片时，后端通过已核验消息的「复制」取得 QQ 导出的原始文件，按账号缓存。标准 `image` 段保留正文中的位置，`file` 为内容摘要文件名，`url` 为后端本地文件 URI；`get_image` 返回本地路径。跨机器调用可使用 `x_get_image` 读取原始字节的 base64。将 `file` 放入单个 `image` 段可再次发送，GIF 保留全部帧。
+
+Linux 已实测原始 PNG、GIF、`get_msg` / `get_image` / `x_get_image` 和缓存标识再次发送；Windows 使用 CF_HDROP 原生剪贴板文件接口，QQ 是否提供该格式待实机验证。导出失败时保留 `quitbot.unresolved_message`，不使用界面截图替代附件。
+
+普通 QQ 表情从复制结果中的 `sysfaceindex` 读取编号，按正文位置转换为标准 `face` 段，不根据中文名称猜测编号。Linux 已实测“微笑”编号 14；随机骰子、猜拳和未提供编号的表情继续保留扩展结果。
+
+`x_download_message_file` 根据协议消息 ID 和 `expected_name`，通过文件气泡的「另存为」下载私聊或群聊文件，返回本地路径、大小和 SHA-256，目标路径须不存在。普通文件传输保留文件语义；视频文件的下载与标准 `video` 消息段分别处理，后者尚未适配。语音、卡片与服务端转发 ID 也保留当前扩展结果。
+
 ## 消息标识与时间
 
 `message_id` 是按账号、会话和 UI 键持久化的本地正 int32。不同账号看到同一条消息时，分别使用各自索引中的 ID。引用、撤回和单条转发会检查消息所属会话。
@@ -70,8 +81,8 @@ QuitBot 使用 OneBot v11 的动作请求与回执格式，适配部分标准动
 
 ## 尚未适配的标准动作
 
-以下 18 个标准动作尚无对应公开入口：
+以下 17 个标准动作尚无对应公开入口：
 
-`get_forward_msg`、`send_like`、`set_group_anonymous_ban`、`set_group_anonymous`、`set_group_name`、`set_group_special_title`、`get_stranger_info`、`get_friend_list`、`get_group_list`、`get_group_honor_info`、`get_cookies`、`get_csrf_token`、`get_credentials`、`get_record`、`get_image`、`get_status`、`set_restart`、`clean_cache`。
+`get_forward_msg`、`send_like`、`set_group_anonymous_ban`、`set_group_anonymous`、`set_group_name`、`set_group_special_title`、`get_stranger_info`、`get_friend_list`、`get_group_list`、`get_group_honor_info`、`get_cookies`、`get_csrf_token`、`get_credentials`、`get_record`、`get_status`、`set_restart`、`clean_cache`。
 
 服务与 UIA 状态可通过 `x_get_runtime_status`、`x_get_uia_status` 查询，反向连接状态位于运行状态的 `reverse_ws` 字段。

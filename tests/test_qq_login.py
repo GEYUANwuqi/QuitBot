@@ -181,6 +181,79 @@ def test_login_window_replacement_stays_with_original_process(monkeypatch):
     assert driver._window().hwnd == 13
 
 
+@pytest.mark.parametrize("stage", ["frame", "tree"])
+@pytest.mark.parametrize("launched", [True, False])
+def test_login_poll_preserves_flow_until_native_controls_are_ready(monkeypatch, stage, launched):
+    from quitbot_backend._engine.errors import ControlTreeChanged, ControlUnavailable
+    from quitbot_backend._engine.ui.workflows import login
+
+    driver = login.QQLoginDriver()
+    window = DiscoveredProcess(hwnd=101, pid=201)
+    driver.window, driver.pid = window, window.pid
+    driver.started_at = login.time.monotonic() if launched else None
+    pending, activated = [True], []
+    root = SimpleNamespace(
+        ProcessId=201, ClassName="", ControlTypeName="WindowControl",
+        SetActive=lambda **_: activated.append(101),
+    )
+
+    def frame(_):
+        if stage == "frame" and pending[0]:
+            raise ControlTreeChanged("fixture AT-SPI registration pending")
+        return root
+
+    def walk(*_, **__):
+        if stage == "tree" and pending[0]:
+            raise ControlTreeChanged("fixture child became null")
+        return [(SimpleNamespace(ClassName="password-container", ControlTypeName="GroupControl"), 1)]
+
+    auto = SimpleNamespace(ControlFromHandle=frame, WalkControl=walk)
+    monkeypatch.setattr(login, "scan_windows", lambda: [window])
+    monkeypatch.setattr(login, "automation", lambda: auto)
+    monkeypatch.setattr(login, "require_unlocked", lambda _: None)
+    view = driver._operate()
+    assert view["state"] == ("starting" if launched else "waiting")
+    assert driver.window == window and driver.pid == 201
+    # A submitted action is never retried or reported as having succeeded.
+    with pytest.raises(ControlTreeChanged):
+        driver._operate("login", "fixture-account-key")
+    assert driver.submitted_at is None
+    pending[0] = False
+    assert driver._operate()["state"] == "accounts"
+    assert activated and driver.profile is None
+    root.ProcessId = 202
+    before = list(activated)
+    with pytest.raises(ValueError, match="进程身份"):
+        driver._operate()
+    assert activated == before
+    root.ProcessId = 201
+
+    def invalid(_):
+        raise ControlUnavailable("fixture ambiguous window")
+
+    auto.ControlFromHandle = invalid
+    with pytest.raises(ControlUnavailable, match="ambiguous"):
+        driver._operate()
+
+
+def test_persistent_missing_controls_report_a_bounded_error_and_allow_manual_retry(monkeypatch):
+    from quitbot_backend._engine.errors import ControlUnavailable
+    from quitbot_backend._engine.ui.workflows import login
+
+    now = [100.0]
+    driver = login.QQLoginDriver()
+    window = DiscoveredProcess(hwnd=101, pid=201)
+    monkeypatch.setattr(login.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(login, "scan_windows", lambda: [window])
+    monkeypatch.setattr(login, "automation", lambda: SimpleNamespace(ControlFromHandle=lambda _: None))
+    monkeypatch.setattr(login, "require_unlocked", lambda _: None)
+    assert driver._operate()["state"] == "waiting"
+    now[0] += 15
+    with pytest.raises(ControlUnavailable, match="无障碍控件仍未就绪"):
+        driver._operate()
+    assert driver._operate()["state"] == "waiting"
+
+
 def test_saved_accounts_allow_nicknames_but_reject_ambiguous_selection():
     from quitbot_backend._engine.ui.workflows.login import QQLoginDriver
 

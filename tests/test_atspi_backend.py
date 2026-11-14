@@ -6,7 +6,11 @@ from types import SimpleNamespace
 import pytest
 
 pytest.importorskip("gi")
-from quitbot_backend._engine.errors import ControlUnavailable, FocusLost
+from quitbot_backend._engine.errors import (
+    ControlTreeChanged,
+    ControlUnavailable,
+    FocusLost,
+)
 from quitbot_backend._engine.platforms.linux.automation import (
     Atspi,
     Automation,
@@ -201,6 +205,71 @@ def test_expander_uses_advertised_open_action(monkeypatch):
 def test_incomplete_tree_is_not_silently_reported_as_complete():
     with pytest.raises(ControlUnavailable, match="tree changed"):
         Control(None, Accessible(children=(None,))).GetChildren()
+
+
+@pytest.mark.parametrize("missing", ["desktop", "application", "frame", "child_count"])
+def test_frame_enumeration_retries_an_incomplete_startup_tree(monkeypatch, missing):
+    from quitbot_backend._engine.ui.backend import wait_until
+
+    frame = Accessible(role="frame")
+    app = Accessible(role="application", children=(frame,))
+    root = Accessible(role="desktop frame", children=(app,))
+    window = Window(42, 321, "QQ", "qq QQ", (10, 20, 400, 300), True)
+    auto = Automation.__new__(Automation)
+    auto.desktop = SimpleNamespace(
+        root=object(), windows=lambda: [window], property=lambda *_: [42],
+    )
+    monkeypatch.setattr(
+        Atspi.Component, "get_extents",
+        lambda *_: SimpleNamespace(x=10, y=20, width=400, height=300),
+    )
+    pending = [True]
+    stale_app = Accessible(role="application", children=(frame, None))
+    if missing == "child_count":
+        stale_app.get_child_count = lambda: -1
+    desktop = {
+        "desktop": None,
+        "application": Accessible(role="desktop frame", children=(app, None)),
+        "frame": Accessible(role="desktop frame", children=(stale_app,)),
+        "child_count": Accessible(role="desktop frame", children=(stale_app,)),
+    }[missing]
+    monkeypatch.setattr(Atspi, "get_desktop", lambda _: desktop if pending[0] else root)
+    auto.pump = lambda: None
+    # A partial enumeration must not look like an empty or complete window list.
+    with pytest.raises(ControlTreeChanged):
+        auto.frames()
+    monkeypatch.setattr(
+        "quitbot_backend._engine.ui.backend.time.sleep", lambda _: pending.__setitem__(0, False),
+    )
+    assert [c.NativeWindowHandle for c in wait_until(auto.frames)] == [42]
+
+
+def test_frame_enumeration_accepts_a_complete_empty_desktop(monkeypatch):
+    auto = Automation.__new__(Automation)
+    auto.pump = lambda: None
+    auto.desktop = SimpleNamespace(root=object(), windows=list, property=lambda *_: None)
+    monkeypatch.setattr(Atspi, "get_desktop", lambda _: Accessible(role="desktop frame"))
+    assert auto.frames() == []
+
+
+def test_unregistered_live_window_is_transient_but_closed_or_ambiguous_window_is_not():
+    auto = Automation.__new__(Automation)
+    auto.frames = lambda **_: []
+    auto.desktop = SimpleNamespace(window=lambda hwnd: Window(hwnd, 321, "QQ", "qq", (0, 0, 1, 1), True))
+    with pytest.raises(ControlTreeChanged):
+        auto.ControlFromHandle(42)
+
+    def closed(_):
+        raise ControlUnavailable("fixture window closed")
+
+    auto.desktop.window = closed
+    with pytest.raises(ControlUnavailable, match="fixture window closed") as failure:
+        auto.ControlFromHandle(42)
+    assert not isinstance(failure.value, ControlTreeChanged)
+    auto.frames = lambda **_: [SimpleNamespace(NativeWindowHandle=42)] * 2
+    with pytest.raises(ControlUnavailable, match="unique AT-SPI frame") as failure:
+        auto.ControlFromHandle(42)
+    assert not isinstance(failure.value, ControlTreeChanged)
 
 
 def test_window_binding_requires_unique_process_and_geometry(monkeypatch):

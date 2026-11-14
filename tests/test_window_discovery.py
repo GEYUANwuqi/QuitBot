@@ -64,6 +64,7 @@ def test_profile_read_targets_one_process_and_releases_com_on_failure(monkeypatc
     from quitbot_backend import discovery
     from quitbot_backend._engine import discovery as native
     from quitbot_backend._engine import locking
+    from quitbot_backend._engine.errors import ControlTreeChanged
     from quitbot_backend._engine.ui import backend as uia
     from quitbot_backend._engine.ui.workflows import inspection
 
@@ -74,16 +75,24 @@ def test_profile_read_targets_one_process_and_releases_com_on_failure(monkeypatc
     ]
     monkeypatch.setattr(discovery, "scan_windows", lambda: windows)
     monkeypatch.setattr(discovery.sys, "platform", "win32")
+    frame_attempts = []
+
+    def frame(hwnd):
+        frame_attempts.append(hwnd)
+        if frame_attempts.count(hwnd) == 1:
+            raise ControlTreeChanged("fixture frame still registering")
+        return SimpleNamespace(
+            ProcessId=hwnd + 100,
+            SetActive=lambda **_: calls.append(("activate", hwnd)),
+        )
+
+    auto = SimpleNamespace(
+        InitializeUIAutomationInCurrentThread=lambda: calls.append("init"),
+        UninitializeUIAutomationInCurrentThread=lambda: calls.append("close"),
+        ControlFromHandle=frame,
+    )
     monkeypatch.setitem(
-        sys.modules,
-        "uiautomation",
-        SimpleNamespace(
-            InitializeUIAutomationInCurrentThread=lambda: calls.append("init"),
-            UninitializeUIAutomationInCurrentThread=lambda: calls.append("close"),
-            ControlFromHandle=lambda hwnd: SimpleNamespace(
-                SetActive=lambda **_: calls.append(("activate", hwnd))
-            ),
-        ),
+        sys.modules, "uiautomation", auto,
     )
     monkeypatch.setitem(
         sys.modules,
@@ -128,11 +137,19 @@ def test_profile_read_targets_one_process_and_releases_com_on_failure(monkeypatc
         "close",
     ]
     assert attempts == [101, 101, 102, 102]
+    assert frame_attempts == [101, 101, 102, 102]
 
     before = list(calls)
     with pytest.raises(RuntimeError, match="进程或窗口已变化"):
         read_window_profile(DiscoveredProcess(hwnd=102, pid=203))
     assert calls == before
+
+    auto.ControlFromHandle = lambda _: SimpleNamespace(
+        ProcessId=203, SetActive=lambda **_: pytest.fail("Do not activate another process"),
+    )
+    with pytest.raises(RuntimeError, match="进程已变化"):
+        read_window_profile(windows[1])
+    assert calls[-2:] == ["init", "close"]
 
     def unavailable(_):
         raise RuntimeError("fixture desktop locked")

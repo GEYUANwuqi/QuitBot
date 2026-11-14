@@ -77,7 +77,10 @@ def read_window_profile(window: DiscoveredProcess) -> DiscoveredWindow:
     try:
         with ui_transaction():
             require_unlocked(auto)
-            auto.ControlFromHandle(window.hwnd).SetActive(waitTime=0.1)
+            control = wait_until(lambda: auto.ControlFromHandle(window.hwnd), timeout=5)
+            if control.ProcessId != window.pid:
+                raise RuntimeError("所选 QQ 进程已变化，请刷新探查后重新连接")
+            control.SetActive(waitTime=0.1)
             matches = wait_until(
                 lambda: [
                     item

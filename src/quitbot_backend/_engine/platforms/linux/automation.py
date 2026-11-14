@@ -500,13 +500,14 @@ class Automation:
         managed = self.desktop.property(self.desktop.root, "_NET_CLIENT_LIST")
         managed = set(managed) if managed is not None else set()
         root = Atspi.get_desktop(0)
-        root.clear_cache()
+        if root is None:
+            raise ControlTreeChanged("AT-SPI desktop is not ready")
         result = []
-        for index in range(root.get_child_count()):
-            app = root.get_child_at_index(index)
-            app.clear_cache()
-            for child in range(app.get_child_count()):
-                frame = app.get_child_at_index(child)
+        # Registration and destruction can happen between the count and the
+        # indexed reads. Use the same complete-tree checks as control traversal.
+        for app in Control(self, root).GetChildren():
+            for child in app.GetChildren():
+                frame = child.obj
                 if frame.get_role() not in (
                     Atspi.Role.FRAME, Atspi.Role.DIALOG, Atspi.Role.WINDOW
                 ):
@@ -565,6 +566,11 @@ class Automation:
             for c in self.frames(include_hidden=True)
             if c.NativeWindowHandle == handle
         ]
+        if not matches:
+            # A native window can precede its AT-SPI registration during startup.
+            # Closed windows remain terminal errors; only a live one can settle.
+            self.desktop.window(handle)
+            raise ControlTreeChanged("X11 window is waiting for its AT-SPI frame")
         if len(matches) != 1:
             raise ControlUnavailable("X11 window has no unique AT-SPI frame")
         return matches[0]

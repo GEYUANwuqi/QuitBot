@@ -7,10 +7,10 @@ import subprocess
 import time
 
 from ....discovery import read_window_profile, scan_windows
-from ...errors import ControlUnavailable
+from ...errors import ControlTreeChanged, ControlUnavailable
 from ...locking import ui_transaction
 from ...platforms import automation, close_automation, initialize_thread
-from ..backend import wait_until
+from ..backend import is_transient_control_error, wait_until
 from .inspection import require_unlocked
 
 
@@ -23,6 +23,7 @@ class QQLoginDriver:
         self.profile = None
         self.submitted_at = None
         self.started_at = None
+        self._controls_pending_since = None
         self.pid = None
         self.new_instance = False
         self.previous_pids = set()
@@ -39,6 +40,7 @@ class QQLoginDriver:
         self.process = process
         self.owned_processes.append(process)
         self.started_at = time.monotonic()
+        self._controls_pending_since = None
         self.new_instance = new_instance
         self.previous_pids = {w.pid for w in windows}
         self.window = self.pid = self.profile = self.expected_account = None
@@ -154,8 +156,9 @@ class QQLoginDriver:
             return
         raise ValueError("当前 QQ 登录控件没有可用的操作接口")
 
-    def _login_nodes(self, auto, root):
-        nodes = self._walk(auto, root)
+    def _login_nodes(self, auto, root, nodes=None):
+        if nodes is None:
+            nodes = self._walk(auto, root)
         single = self._class(nodes, "single-login")
         if single and not self._class(nodes, "account-list-item"):
             names = self._class(self._walk(auto, single[0]), "name")
@@ -239,6 +242,7 @@ class QQLoginDriver:
     def _operate(self, action=None, account_key=None):
         window = self._window()
         if window is None:
+            self._controls_pending_since = None
             starting = self.started_at and time.monotonic() - self.started_at < 60
             return {
                 "state": "starting" if starting else "closed",
@@ -252,11 +256,34 @@ class QQLoginDriver:
             }
         auto = automation()
         require_unlocked(auto)
-        root = auto.ControlFromHandle(window.hwnd)
-        if root.ProcessId != window.pid:
-            raise ValueError("QQ 进程身份已变化")
-        root.SetActive(waitTime=0.1)
-        nodes = self._login_nodes(auto, root)
+        try:
+            root = auto.ControlFromHandle(window.hwnd)
+            if root is None:
+                raise ControlTreeChanged("QQ window controls are not ready")
+            if root.ProcessId != window.pid:
+                raise ValueError("QQ 进程身份已变化")
+            root.SetActive(waitTime=0.1)
+            nodes = self._walk(auto, root)
+        except Exception as error:
+            if action is not None or not is_transient_control_error(error):
+                raise
+            # Preserve the login flow while the frontend polls. No login or
+            # account-selection action has been submitted at this point.
+            now = time.monotonic()
+            if self._controls_pending_since is None:
+                self._controls_pending_since = now
+            if now - self._controls_pending_since >= 15:
+                self._controls_pending_since = None
+                raise ControlUnavailable(
+                    "QQ 窗口的无障碍控件仍未就绪，请确认已启用辅助功能后重试"
+                ) from error
+            starting = self.started_at is not None and now - self.started_at < 60
+            return {
+                "state": "starting" if starting else "waiting",
+                "message": "QQ 窗口正在加载，请稍候…",
+            }
+        self._controls_pending_since = None
+        nodes = self._login_nodes(auto, root, nodes)
         if self._class(nodes, "user-avatar"):
             if action is not None:
                 raise ValueError("QQ 已登录，请读取登录状态后连接账号")

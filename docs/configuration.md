@@ -270,7 +270,7 @@ git tag -a "v$quitbot_version" -m "QuitBot v$quitbot_version"
 git push origin "v$quitbot_version"
 ```
 
-工作流复用 Windows 和 Linux CI，全部检查通过后创建 Release，并自动生成发布说明。附件包含：
+工作流复用 Windows 和 Linux CI，全部检查通过后创建 Release。发布说明自动收集上一个版本标签之后的提交正文，按提交顺序排列，每个提交占一行；多段正文合并为一行，正文为空时使用标题。提交标题统一使用 `feat/fix/refactor/...: 中文描述`，具体约定见 [CONTRIBUTING](../CONTRIBUTING.md)。附件包含：
 
 - `quitbot-<版本>.tar.gz`：包含前后端源码、文档和已构建控制台的 Python 源码包。
 - `quitbot-<版本>-py3-none-any.whl`：Windows / Linux 共用的安装包，包含控制台资源，依赖按平台选择。

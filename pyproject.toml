@@ -36,7 +36,7 @@ packages = ["src/quitbot_backend"]
 include = [
     "/src", "/tests", "/frontend", "/scripts", "/hatch_build.py",
     "/.gitignore", "/.python-version", "/pyproject.toml", "/uv.lock",
-    "/README.md", "/LICENSE", "/docs", "/protocol",
+    "/README.md", "/CONTRIBUTING.md", "/LICENSE", "/docs", "/protocol",
 ]
 
 [dependency-groups]

@@ -50,11 +50,19 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - name: Download checked distributions and licenses
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: quitbot-windows-distributions
           path: dist
+      - name: Collect commit bodies for release notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python scripts/release_notes.py "$RELEASE_TAG" --output release-notes.md
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -71,4 +79,4 @@ jobs:
           done
           gh release create "$RELEASE_TAG" "${assets[@]}" \
             --verify-tag --title "QuitBot $RELEASE_TAG" \
-            --generate-notes --prerelease="$PRERELEASE"
+            --notes-file release-notes.md --prerelease="$PRERELEASE"

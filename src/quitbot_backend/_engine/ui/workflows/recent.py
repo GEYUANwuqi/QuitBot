@@ -45,9 +45,26 @@ class RecentConversations:
 
     def locate(self, name):
         """QQ virtualizes the recent list independently of the active chat."""
+
+        def visible_row():
+            row = self.row(name)
+            if row.IsOffscreen:
+                raise ControlUnavailable(f"会话「{name}」位于列表可见区域之外")
+            return row
+
         try:
-            return self.row(name)
+            return visible_row()
         except ControlUnavailable:
+            self.b.window.SetActive(waitTime=0.05)
+            try:
+                row = self.row(name)
+                if row.IsOffscreen:
+                    item_scroll = row.GetPattern(self.b.auto.PatternId.ScrollItemPattern)
+                    if item_scroll is not None:
+                        item_scroll.ScrollIntoView(waitTime=0.15)
+                return visible_row()
+            except ControlUnavailable:
+                pass
             pane = self.b.find(
                 self.b.window,
                 lambda c: c.Name == "会话列表" and c.ControlTypeName == "PaneControl",
@@ -56,7 +73,7 @@ class RecentConversations:
             if hasattr(pane, "scroll_pages"):
                 for _ in pane.scroll_pages():
                     try:
-                        return self.row(name)
+                        return visible_row()
                     except ControlUnavailable:
                         pass
                 raise ControlUnavailable(f"未在 QQ 最近会话列表中找到「{name}」")
@@ -70,7 +87,7 @@ class RecentConversations:
                 for _ in range(80):
                     scroll.SetScrollPercent(-1, position, waitTime=0.15)
                     try:
-                        result = self.row(name)
+                        result = visible_row()
                         found = True
                         return result
                     except ControlUnavailable:

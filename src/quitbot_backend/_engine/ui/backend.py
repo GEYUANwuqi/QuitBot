@@ -397,7 +397,7 @@ class DesktopBackend:
         )
         if header is not None and header.Name == name:
             return
-        self.invoke(RecentConversations(self).row(name))
+        self.invoke(RecentConversations(self).locate(name))
 
         def loaded_header():
             current = self.find(

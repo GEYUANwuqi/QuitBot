@@ -22,6 +22,7 @@ def control(kind="GroupControl", name="", cls="", children=(), focus=False):
         NativeWindowHandle=0,
     )
     node.GetChildren = lambda: node.children
+    node.GetPattern = lambda _: None
     return node
 
 
@@ -164,12 +165,12 @@ def test_recent_locator_scrolls_virtual_list_and_restores_position_on_failure(
     pane.GetPattern = lambda _: scroll
     if present:
         assert recent.locate("fixture group") is row
-        assert calls[0] == 0 and scroll.VerticalScrollPercent >= 30
+        assert 0 in calls and scroll.VerticalScrollPercent >= 30
     else:
         with pytest.raises(ControlUnavailable, match="未在 QQ 最近会话列表中找到"):
             recent.locate("fixture group")
         assert 100 in calls and calls[-1] == 12.5
-    assert not any(isinstance(call, str) for call in calls)
+    assert [call for call in calls if isinstance(call, str)] == ["activate"]
 
 
 @pytest.mark.parametrize(
@@ -352,3 +353,84 @@ def test_duplicate_complete_names_are_rejected_across_different_fragmentation(re
     with pytest.raises(TargetMismatch, match="同名"):
         recent.b.open_session("🧪测试群")
     assert calls == []
+
+
+@pytest.mark.parametrize("native", [False, True])
+@pytest.mark.parametrize("loaded_offscreen", [False, True])
+def test_open_session_scrolls_virtualized_rows_and_opens_full_emoji_name_once(
+    recent_ui, native, loaded_offscreen
+):
+    recent, _, calls, row, pane, _, _ = recent_ui
+    b = recent.b
+    name = "🧪测试群👩🏽‍💻"
+    row.children[0] = name_info(("🧪", "测试群", "👩🏽‍💻"))
+    row.IsOffscreen = loaded_offscreen
+    pane.children = [row] if loaded_offscreen else []
+    b.auto.PatternId = SimpleNamespace(ScrollPattern=1, ScrollItemPattern=2)
+    scroll = SimpleNamespace(
+        VerticallyScrollable=True, VerticalScrollPercent=70, VerticalViewSize=10
+    )
+
+    def move(_, position, **__):
+        calls.append(position)
+        row.IsOffscreen = position < 30
+        pane.children = [row] if loaded_offscreen or position >= 30 else []
+
+    scroll.SetScrollPercent = move
+    pane.GetPattern = lambda _: None if native else scroll
+    if native:
+        def pages():
+            for page in (0, 20, 40):
+                move(-1, page)
+                yield
+        pane.scroll_pages = pages
+
+    def select(selected):
+        assert selected is row
+        calls.append("select")
+        b.main_window.children.append(control("ButtonControl", name, "chat-header__contact-name"))
+
+    b.invoke = select
+    b.open_session(name)
+    assert 0 in calls and len(calls) > 2 and calls[-1] == "select"
+    assert calls.count("select") == 1 and b.header().Name == name
+    assert [c for c in calls if isinstance(c, str)] == ["activate", "select"]
+
+
+@pytest.mark.parametrize("revealed", [False, True])
+def test_open_session_reacquires_row_after_scroll_into_view(recent_ui, revealed):
+    recent, _, calls, row, pane, _, _ = recent_ui
+    b = recent.b
+    name = "🧪测试群"
+    row.children[0] = name_info(("🧪", "测试群"))
+    row.IsOffscreen = True
+    replacement = control(cls="recent-contact-item", children=(name_info((name,)),))
+    b.auto.PatternId = SimpleNamespace(ScrollPattern=1, ScrollItemPattern=2)
+
+    def reveal(**_):
+        calls.append("scroll-into-view")
+        if revealed:
+            pane.children = [replacement]
+
+    row.GetPattern = lambda _: SimpleNamespace(ScrollIntoView=reveal)
+
+    def pages():
+        calls.append("page-scroll")
+        pane.children = [replacement]
+        yield
+
+    pane.scroll_pages = pages
+
+    def select(selected):
+        assert selected is replacement and not selected.IsOffscreen
+        calls.append("select")
+        b.main_window.children.append(
+            control("ButtonControl", name, "chat-header__contact-name")
+        )
+
+    b.invoke = select
+    b.open_session(name)
+    assert calls == [
+        "activate", "scroll-into-view", *([] if revealed else ["page-scroll"]), "select"
+    ]
+    assert b.header().Name == name

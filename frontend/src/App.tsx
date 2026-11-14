@@ -44,6 +44,7 @@ import {
   saved,
 } from "./types";
 import { Badge, Select } from "./ui";
+import { version as frontendVersion } from "../package.json";
 
 const navigation: {
   group: string;
@@ -641,7 +642,7 @@ export default function App({
           </div>
           <small>每个账号，独立连接</small>
           <span className="sidebar-version">
-            QuitBot <span>v{catalog?.version || "0.12.0"}</span>
+            QuitBot <span>v{catalog?.version || frontendVersion}</span>
           </span>
         </div>
       </aside>

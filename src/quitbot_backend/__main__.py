@@ -32,7 +32,11 @@ async def main(path, logs):
     store = ConfigStore(path)
     logs.configure(
         store.current.logging.retention_days,
-        (a.reverse_ws.access_token for a in store.current.accounts),
+        (
+            endpoint.access_token
+            for account in store.current.accounts
+            for endpoint in (account.forward_ws, account.reverse_ws)
+        ),
     )
     override = os.environ.get("QUITBOT_MANAGEMENT_PORT")
     webui = WebUIConfig.model_validate(

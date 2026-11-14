@@ -141,11 +141,11 @@ def create_app(
     for action in ACTIONS.values():
         register(action)
 
-    async def websocket(socket: WebSocket):
+    async def websocket(socket: WebSocket, *, access_token: str | None = None):
         if not origin_allowed(socket.headers.get("origin"), socket.headers.get("host")):
             await socket.close(code=1008)
             return
-        token = await authenticate_socket(socket, access)
+        token = await authenticate_socket(socket, access, access_token=access_token)
         if token is None:
             return
         events = socket.url.path != "/api"
@@ -155,7 +155,7 @@ def create_app(
 
         async def send(value):
             async with send_lock:
-                if not access.valid(token):
+                if access_token is None and not access.valid(token):
                     await socket.close(4401, "Access credential revoked")
                     return
                 await socket.send_json(value)
@@ -184,11 +184,14 @@ def create_app(
                 }
             )
         sender = asyncio.create_task(publish_events()) if events else None
-        watcher = asyncio.create_task(guard_session(socket, access, lambda: token))
+        watcher = (
+            asyncio.create_task(guard_session(socket, access, lambda: token))
+            if access_token is None else None
+        )
         try:
             while True:
                 raw = await socket.receive_text()
-                if not access.valid(token):
+                if access_token is None and not access.valid(token):
                     await socket.close(4401, "Access credential revoked")
                     break
                 if len(raw.encode("utf-8")) > 1024 * 1024:
@@ -223,17 +226,21 @@ def create_app(
         except (WebSocketDisconnect, RuntimeError):
             pass
         finally:
-            watcher.cancel()
-            await asyncio.gather(watcher, return_exceptions=True)
+            if watcher:
+                watcher.cancel()
+                await asyncio.gather(watcher, return_exceptions=True)
             if queue is not None:
                 runtime.unsubscribe(queue)
             if sender:
                 sender.cancel()
                 await asyncio.gather(sender, return_exceptions=True)
 
+    async def forward_websocket(socket: WebSocket):
+        await websocket(socket, access_token=config.forward_ws.access_token or None)
+
     for path in ("/ws", "/", "/api", "/event"):
-        app.websocket(path)(websocket)
-    app.state.websocket = websocket
+        app.websocket(path)(forward_websocket)
+    app.state.console_websocket = websocket
 
     # This describes real HTTP routes. WS uses the same request/result schemas,
     # with its envelope documented as an explicit vendor extension.
@@ -247,10 +254,16 @@ def create_app(
                 "action": "x_authenticate",
                 "params": {"access_token": "<access_token>"},
             },
-            "login": "Obtain a session from the console service; change the initial password before account access",
-            "durationConfiguration": "webui.session_hours",
-            "defaultDurationSeconds": 14400,
-            "sliding": False,
+            "accessTokenConfiguration": "accounts[].forward_ws.access_token",
+            "configuredToken": "Only the configured token is accepted; no session expiry. Applies only to this account's forward WS, not HTTP or console routes.",
+            "firstFrameResult": "Configured token: {authenticated: true}; console session: {expires_at, must_change_password}",
+            "sessionFallback": {
+                "when": "forward_ws.access_token is empty (default)",
+                "login": "Obtain a session from the console service; change the initial password before account access",
+                "durationConfiguration": "webui.session_hours",
+                "defaultDurationSeconds": 14400,
+                "sliding": False,
+            },
         },
         "request": {
             "action": "operationId",

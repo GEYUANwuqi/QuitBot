@@ -220,7 +220,7 @@ def create_management_app(
         if account is None:
             await socket.close(1008)
             return
-        await account.app.state.websocket(socket)
+        await account.app.state.console_websocket(socket)
 
     @app.put(
         "/api/config", dependencies=[Depends(require_access)], tags=["configuration"]

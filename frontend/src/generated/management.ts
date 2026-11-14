@@ -232,7 +232,7 @@ export interface components {
              */
             label: string;
             http?: components["schemas"]["ListenerConfig"];
-            forward_ws?: components["schemas"]["ListenerConfig"];
+            forward_ws?: components["schemas"]["ForwardWSConfig"];
             reverse_ws?: components["schemas"]["ReverseWSConfig"];
             /** Hwnd */
             hwnd?: number | null;
@@ -351,6 +351,30 @@ export interface components {
             windows?: components["schemas"]["DiscoveredProcess"][];
             /** Error */
             error?: string | null;
+        };
+        /** ForwardWSConfig */
+        ForwardWSConfig: {
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /**
+             * Host
+             * @default 127.0.0.1
+             */
+            host: string;
+            /**
+             * Port
+             * @default 6701
+             */
+            port: number;
+            /**
+             * Access Token
+             * @description 正向 WS 独立令牌；留空时使用控制台登录会话
+             * @default
+             */
+            access_token: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {

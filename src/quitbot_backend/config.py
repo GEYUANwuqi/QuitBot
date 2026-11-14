@@ -46,6 +46,17 @@ class ListenerConfig(BaseModel):
     _host = field_validator("host")(listen_host)
 
 
+class ForwardWSConfig(ListenerConfig):
+    port: int = Field(default=6701, ge=1024, le=65535)
+    access_token: str = Field(
+        default="",
+        repr=False,
+        pattern=r"^[\x21-\x7e]*$",
+        max_length=4096,
+        description="正向 WS 独立令牌；留空时使用控制台登录会话",
+    )
+
+
 class ReverseWSConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     enabled: StrictBool = False
@@ -96,9 +107,7 @@ class AccountConfig(BaseModel):
     account_id: str = Field(pattern=r"^[1-9][0-9]*$")
     label: str = ""
     http: ListenerConfig = Field(default_factory=ListenerConfig)
-    forward_ws: ListenerConfig = Field(
-        default_factory=lambda: ListenerConfig(port=6701)
-    )
+    forward_ws: ForwardWSConfig = Field(default_factory=ForwardWSConfig)
     reverse_ws: ReverseWSConfig = Field(default_factory=ReverseWSConfig)
     hwnd: int | None = None
     targets: list[TargetConfig] = Field(default_factory=list)

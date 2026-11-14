@@ -36,7 +36,7 @@ QuitBot 使用 OneBot v11 的动作请求与回执格式，适配部分标准动
 
 `x_like_friend` 执行单次原生点赞并读取界面计数文本。`x_get_targets` 返回配置内的会话列表。这两个动作分别独立于标准 `send_like` 和好友 / 群列表查询。
 
-正向 WS 使用 Bearer 请求头，或在首帧发送 `x_authenticate`。反向 WS 由 QuitBot 主动连接应用，握手携带 `X-Self-ID`、`X-Client-Role` 和可选接收端 Bearer 令牌，支持 Universal / API / Event 三种用途及断线重连。登录、会话、`x_get_config` 和 `x_set_config` 位于管理服务，独立于上述 131 个账号动作。连接格式见[接口调用](api.md)。
+正向 WS 使用 Bearer 请求头，或在首帧发送 `x_authenticate`；配置 `forward_ws.access_token` 后使用该账号的独立令牌，留空时使用控制台登录会话。反向 WS 由 QuitBot 主动连接应用，握手携带 `X-Self-ID`、`X-Client-Role` 和可选接收端 Bearer 令牌，支持 Universal / API / Event 三种用途及断线重连。登录、会话、`x_get_config` 和 `x_set_config` 位于管理服务，独立于上述 131 个账号动作。连接格式见[接口调用](api.md)。
 
 ## 消息、通知与请求事件
 

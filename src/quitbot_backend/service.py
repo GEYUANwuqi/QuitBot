@@ -405,7 +405,11 @@ class Service:
                 await asyncio.to_thread(
                     self.logs.configure,
                     config.logging.retention_days,
-                    (a.reverse_ws.access_token for a in config.accounts),
+                    (
+                        endpoint.access_token
+                        for account in config.accounts
+                        for endpoint in (account.forward_ws, account.reverse_ws)
+                    ),
                 )
             except OSError as error:
                 log.exception("Log retention update failed")

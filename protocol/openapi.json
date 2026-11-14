@@ -18442,10 +18442,16 @@
           "access_token": "<access_token>"
         }
       },
-      "login": "Obtain a session from the console service; change the initial password before account access",
-      "durationConfiguration": "webui.session_hours",
-      "defaultDurationSeconds": 14400,
-      "sliding": false
+      "accessTokenConfiguration": "accounts[].forward_ws.access_token",
+      "configuredToken": "Only the configured token is accepted; no session expiry. Applies only to this account's forward WS, not HTTP or console routes.",
+      "firstFrameResult": "Configured token: {authenticated: true}; console session: {expires_at, must_change_password}",
+      "sessionFallback": {
+        "when": "forward_ws.access_token is empty (default)",
+        "login": "Obtain a session from the console service; change the initial password before account access",
+        "durationConfiguration": "webui.session_hours",
+        "defaultDurationSeconds": 14400,
+        "sliding": false
+      }
     },
     "request": {
       "action": "operationId",

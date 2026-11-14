@@ -277,16 +277,42 @@ def test_cleanup_failure_still_writes_receipts_without_breaking_operations(
     assert "日志写入或清理失败" in capsys.readouterr().err
 
 
-def test_configured_receiver_credentials_and_bearer_tokens_are_redacted(file_logs):
+def test_configured_ws_credentials_and_bearer_tokens_are_redacted(tmp_path, file_logs):
     receiver = "synthetic-receiver-credential"
+    forward = "synthetic-forward-credential"
     session = "qb_synthetic-session-credential"
     password = "synthetic-secret-password"
-    file_logs.configure(7, [receiver])
+    service = Service(
+        ConfigStore(tmp_path / "accounts.json"), AccessKeys(), logs=file_logs
+    )
+
+    async def configure():
+        try:
+            await service.update(
+                ServiceConfig(
+                    accounts=[
+                        AccountConfig(
+                            account_id="10001",
+                            forward_ws={"access_token": forward},
+                            reverse_ws={"access_token": receiver},
+                        )
+                    ]
+                ),
+                service.store.revision,
+            )
+        finally:
+            await service.close()
+
+    asyncio.run(configure())
     logging.getLogger(__name__).error(
-        "receiver=%s Authorization: Bearer %s password=%s", receiver, session, password
+        "forward=%s receiver=%s Authorization: Bearer %s password=%s",
+        forward,
+        receiver,
+        session,
+        password,
     )
     text = log_text(file_logs)
-    assert all(value not in text for value in (receiver, session, password))
+    assert all(value not in text for value in (forward, receiver, session, password))
     assert "[REDACTED]" in text
 
 

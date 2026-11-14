@@ -103,7 +103,7 @@ uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /o
 1. 首次启动时，终端显示随机临时密码。打开本机 [QuitBot](http://127.0.0.1:6699/) 进入登录页，页面自动连接本机服务。
 2. 输入临时密码后进入强制改密页。设置 8–128 个字符的新密码，完成后才能读取配置和操作 QQ。
 3. 后续使用新密码登录。单次登录默认有效 **4 小时**，可通过 `webui.session_hours` 配置为 0.1–720 小时。修改对后续新登录生效，已有会话保留原到期时间；刷新页面和发起请求均不续期。
-4. 到期后返回登录页，后端同时拒绝过期的 HTTP / WS 凭证并关闭已建立的正向 WS。退出登录会撤销当前会话；改密会撤销全部已有会话，并签发新的当前会话。
+4. 到期后返回登录页，后端同时拒绝过期的 HTTP / WS 凭证并关闭使用该会话的 WS。退出登录会撤销当前会话；改密会撤销全部已有会话，并签发新的当前会话。使用独立令牌的正向 WS 继续运行。
 
 密码使用随机盐和 PBKDF2-HMAC-SHA256 摘要保存。临时密码仅在生成时显示于终端，密码明文不写入配置。浏览器仅在当前标签页的 `sessionStorage` 保存会话凭证及到期时间；密码输入不会持久化。后端重启后需要重新登录。
 
@@ -168,7 +168,7 @@ uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /o
 | `account_id` | 必填，数字 QQ 号字符串，绑定时核验窗口身份 |
 | `label` | 展示名称，默认为空 |
 | `http` | HTTP 监听配置：`enabled` 默认 `false`，`host` 默认 `127.0.0.1`，`port` 默认 `6700` |
-| `forward_ws` | 正向 WS 监听配置：`enabled` 默认 `false`，`host` 默认 `127.0.0.1`，`port` 默认 `6701` |
+| `forward_ws` | 正向 WS 配置：`enabled` 默认 `false`，`host` 默认 `127.0.0.1`，`port` 默认 `6701`，`access_token` 默认空 |
 | `hwnd` | 可选窗口句柄，绑定时仍核验 QQ 号 |
 | `targets` | 操作和监听范围；每项包含数字字符串 `id`、精确名称 `name`、类型 `kind`（`group` / `private`，默认 `group`） |
 | `auto_connect` | 默认 `false`；设为 `true` 时启动实例后自动绑定，监听另行启动 |
@@ -194,6 +194,10 @@ uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /o
 两种连接分别使用账号的 `http` 和 `forward_ws` 字段，可单独添加、启用或关闭。监听地址支持 IP、主机名与通配地址，端口范围为 1024–65535。不同账号及 WebUI 使用不同端口；同一账号的 HTTP 与正向 WS 设置为相同地址、端口时共用监听端点，其他情况下分别监听。仅启用 HTTP 的端点拒绝 WS 握手，仅启用正向 WS 的端点不提供 HTTP 动作与文档。
 
 控制台的 `/accounts/{account_id}/ws` 通道沿用登录会话，与对外 HTTP、正向 WS 和反向 WS 配置独立。
+
+在正向 WebSocket 配置卡片填写「访问令牌」，确认后点击「保存并应用」。`forward_ws.access_token` 支持最多 4096 个不含空白的可打印 ASCII 字符，保存在 `accounts.json`。填写后该账号的正向 WS 只接受此令牌，支持 Bearer 请求头与 `x_authenticate` 首帧；控制台退出、改密和会话到期不影响它。留空时使用控制台登录会话，兼容已有配置。
+
+修改令牌按账号热更新，成功应用后旧连接关闭，第三方客户端使用新令牌重连。其他账号继续运行。独立令牌不用于账号 HTTP 或管理服务，运行状态和日志也不返回令牌明文。具体认证格式见[接口调用](api.md#正向连接的登录与认证)。
 
 ## 反向 WS 配置
 

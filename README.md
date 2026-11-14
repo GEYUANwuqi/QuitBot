@@ -107,7 +107,7 @@ uv run --locked --no-dev python -m quitbot_backend.desktop --display :99 --qq /o
 | HTTP `/openapi.json` | OpenAPI 3.1 文档 |
 | WS 动作 `x_get_api_catalog` | 动作清单、参数与返回值的 JSON Schema |
 
-WebUI、正向 WS 和 HTTP 的监听地址与端口均可自定义，默认使用本机回环地址。受保护接口使用登录后取得的会话凭证；反向 WS 连接配置的 `ws://` / `wss://` 接收地址。写操作超时或断线后，应先查询实际结果，再决定是否重试。请求格式、认证流程及错误处理见[接口调用](docs/api.md)。
+WebUI、正向 WS 和 HTTP 的监听地址与端口均可自定义，默认使用本机回环地址。正向 WS 可设置账号独立的访问令牌，留空时使用控制台登录会话；WebUI 与账号 HTTP 使用登录会话认证。反向 WS 连接配置的 `ws://` / `wss://` 接收地址。写操作超时或断线后，应先查询实际结果，再决定是否重试。请求格式、认证流程及错误处理见[接口调用](docs/api.md)。
 
 后端源码位于 `src/quitbot_backend/`，前端位于 `frontend/`，协议文件位于 `protocol/`。结构与运行机制见[架构说明](docs/architecture.md)。
 

@@ -525,7 +525,7 @@
             "$ref": "#/components/schemas/ListenerConfig"
           },
           "forward_ws": {
-            "$ref": "#/components/schemas/ListenerConfig"
+            "$ref": "#/components/schemas/ForwardWSConfig"
           },
           "reverse_ws": {
             "$ref": "#/components/schemas/ReverseWSConfig"
@@ -843,6 +843,38 @@
         },
         "type": "object",
         "title": "DiscoveryView"
+      },
+      "ForwardWSConfig": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "host": {
+            "type": "string",
+            "title": "Host",
+            "default": "127.0.0.1"
+          },
+          "port": {
+            "type": "integer",
+            "maximum": 65535.0,
+            "minimum": 1024.0,
+            "title": "Port",
+            "default": 6701
+          },
+          "access_token": {
+            "type": "string",
+            "maxLength": 4096,
+            "pattern": "^[\\x21-\\x7e]*$",
+            "title": "Access Token",
+            "description": "正向 WS 独立令牌；留空时使用控制台登录会话",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ForwardWSConfig"
       },
       "HTTPValidationError": {
         "properties": {

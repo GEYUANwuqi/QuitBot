@@ -203,6 +203,14 @@ def bearer(header: str | None) -> str | None:
     return parts[1] if len(parts) == 2 and parts[0].lower() == "bearer" else None
 
 
+def token_matches(token: str | None, expected: str) -> bool:
+    return (
+        isinstance(token, str)
+        and bool(expected)
+        and secrets.compare_digest(token.encode("utf-8"), expected.encode("utf-8"))
+    )
+
+
 async def guard_session(
     socket: WebSocket,
     keys: AccessKeys,
@@ -226,13 +234,21 @@ async def guard_session(
 
 
 async def authenticate_socket(
-    socket: WebSocket, keys: AccessKeys, *, allow_login=False
+    socket: WebSocket,
+    keys: AccessKeys,
+    *,
+    allow_login=False,
+    access_token: str | None = None,
 ) -> str | None:
     await socket.accept()
     header = socket.headers.get("authorization")
     if header:
         token = bearer(header)
-        if keys.valid(token, allow_password_change=allow_login):
+        if (
+            token_matches(token, access_token)
+            if access_token is not None
+            else keys.valid(token, allow_password_change=allow_login)
+        ):
             log_reply("x_authenticate", {"status": "ok", "retcode": 0})
             return token
         log_reply(
@@ -240,17 +256,17 @@ async def authenticate_socket(
             {
                 "status": "failed",
                 "retcode": 1401,
-                "message": "Valid session required",
+                "message": "Valid access credential required",
                 "data": None,
             },
         )
-        await socket.close(4401, "Valid session required")
+        await socket.close(4401, "Valid access credential required")
         return None
     echo = {}
     action = "<invalid authentication>"
     try:
         raw = await asyncio.wait_for(socket.receive_text(), timeout=10)
-        if len(raw.encode("utf-8")) > 4096:
+        if len(raw.encode("utf-8")) > 16 * 1024:
             raise ValueError("Authentication request too large")
         request = json.loads(raw)
         if not isinstance(request, dict) or set(request) - {"action", "params", "echo"}:
@@ -261,7 +277,7 @@ async def authenticate_socket(
         action = request.get("action")
         if not isinstance(params, dict):
             raise TypeError("Invalid authentication parameters")
-        if allow_login and request.get("action") == "x_login":
+        if allow_login and access_token is None and request.get("action") == "x_login":
             body = LoginRequest.model_validate(params)
             credential = await asyncio.to_thread(keys.login, body.password)
             token, data = credential.access_token, credential.model_dump()
@@ -269,7 +285,12 @@ async def authenticate_socket(
             "access_token"
         }:
             token = params["access_token"]
-            data = keys.info(token, allow_password_change=allow_login).model_dump()
+            if access_token is not None:
+                if not token_matches(token, access_token):
+                    raise HTTPException(401, "正向 WS 令牌无效")
+                data = {"authenticated": True}
+            else:
+                data = keys.info(token, allow_password_change=allow_login).model_dump()
         else:
             raise HTTPException(401, "请先登录")
         await socket.send_json({"status": "ok", "retcode": 0, "data": data, **echo})

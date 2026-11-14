@@ -601,6 +601,7 @@ function NetworkEditor({
     ...account.reverse_ws,
     enabled: true,
   }));
+  const [accessToken, setAccessToken] = useState(account.forward_ws?.access_token || "");
   const [error, setError] = useState("");
   const title = channels.find((item) => item.id === type)!.name;
   const isReverse = type === "reverse_ws";
@@ -617,7 +618,16 @@ function NetworkEditor({
             setError("请填写 ws:// 或 wss:// 接收地址");
             return;
           }
-          onSave(isReverse ? { reverse_ws: reverse } : { [type]: listener });
+          if (type === "forward_ws" && !/^[\x21-\x7e]*$/.test(accessToken)) {
+            setError("访问令牌请使用不含空格的 ASCII 字符");
+            return;
+          }
+          onSave(
+            isReverse ? { reverse_ws: reverse }
+              : type === "forward_ws"
+                ? { forward_ws: { ...listener, access_token: accessToken } }
+                : { http: listener },
+          );
         }}
       >
         <label className="setting-switch">
@@ -731,6 +741,23 @@ function NetworkEditor({
               />
             </label>
           </div>
+        )}
+        {type === "forward_ws" && (
+          <label className="field">
+            访问令牌
+            <input
+              type="password"
+              autoComplete="off"
+              maxLength={4096}
+              value={accessToken}
+              onChange={(e) => setAccessToken(e.target.value)}
+              aria-describedby="forward-token-hint"
+            />
+            <small id="forward-token-hint" className="settings-hint">
+              填写后，应用使用此令牌连接本账号的正向 WS，控制台退出或会话到期后仍可使用。
+              留空则使用控制台登录会话。控制台和 HTTP 继续使用登录会话认证。
+            </small>
+          </label>
         )}
         {!isReverse && (
           <p className="settings-hint">

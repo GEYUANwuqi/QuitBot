@@ -1,6 +1,7 @@
 """Contact notification pages exposed by native QQ accessibility controls."""
 
 import re
+from contextlib import contextmanager
 
 from quitbot_backend._engine.domain.activities import parse_system_cards
 from quitbot_backend._engine.errors import ControlUnavailable, MutationOutcomeUnknown
@@ -60,15 +61,39 @@ class NotificationUI:
             raise ControlUnavailable("Unrecognized notification list container")
         return siblings[0]
 
-    def read(self, kind):
+    @contextmanager
+    def _visit(self, kind):
+        if kind not in ("group", "friend"):
+            raise ValueError("Notification kind must be group or friend")
         b = self.b
         b.check_thread()
         with ui_transaction():
             previous = b.window
             try:
-                return parse_system_cards(b.snapshot(self.page(kind)), kind)
+                require_unlocked(b.auto)
+                b.use_main_window()
+                b._require_no_modal()
+                failure = None
+                try:
+                    yield self.page(kind)
+                except BaseException as error:
+                    failure = error
+                    raise
+                finally:
+                    try:
+                        b.navigate("消息")
+                    except Exception as error:
+                        if failure is None:
+                            raise
+                        failure.add_note(
+                            f"Returning to the message page failed: {error}"
+                        )
             finally:
                 b.window = previous
+
+    def read(self, kind):
+        with self._visit(kind) as page:
+            return parse_system_cards(self.b.snapshot(page), kind)
 
     def respond(self, kind, ui_key, approve):
         if (
@@ -78,67 +103,76 @@ class NotificationUI:
         ):
             raise ValueError("Expected a local UI request key and a boolean decision")
         b = self.b
-        b.check_thread()
-        with ui_transaction():
-            page = self.page(kind)
-            matches = []
-            for row in b.walk(page):
-                if "list-item" not in row.ClassName.split():
-                    continue
-                cards = parse_system_cards(b.snapshot(row), kind)
-                if len(cards) == 1 and cards[0].ui_key == ui_key:
-                    matches.append((row, cards[0]))
-            if len(matches) != 1 or matches[0][1].status != "pending":
-                raise ControlUnavailable(
-                    "Request is stale, ambiguous, or no longer pending"
-                )
-            row, card = matches[0]
-            label = "同意" if approve else "拒绝"
-            if label not in card.actions:
-                raise ControlUnavailable("Requested decision is not exposed by QQ")
-            if kind == "friend" and not approve:
-                arrow = b.find(
-                    row,
-                    lambda c: "q-select-button-action__wrapper" in c.ClassName.split(),
-                )
-                b.invoke(arrow)
-                menu = wait_until(
-                    lambda: b.find(
-                        b.window,
-                        lambda c: (
-                            c.ControlTypeName == "MenuControl"
-                            and "q-select-button-options" in c.ClassName.split()
-                        ),
-                        False,
+        submitted = False
+        try:
+            with self._visit(kind) as page:
+                matches = []
+                for row in b.walk(page):
+                    if "list-item" not in row.ClassName.split():
+                        continue
+                    cards = parse_system_cards(b.snapshot(row), kind)
+                    if len(cards) == 1 and cards[0].ui_key == ui_key:
+                        matches.append((row, cards[0]))
+                if len(matches) != 1 or matches[0][1].status != "pending":
+                    raise ControlUnavailable(
+                        "Request is stale, ambiguous, or no longer pending"
                     )
-                )
-                leaf = b.find(
-                    menu,
-                    lambda c: (
-                        c.ControlTypeName == "MenuItemControl" and c.Name == "拒绝"
-                    ),
-                )
-            else:
-                leaf = b.find(
-                    row,
-                    lambda c: (
-                        (c.ControlTypeName == "ButtonControl" and c.Name == label)
-                        or (
-                            "q-selected-area" in c.ClassName.split()
-                            and any(
-                                x.ControlTypeName == "TextControl" and x.Name == label
-                                for x, _ in b.auto.WalkControl(c, maxDepth=2)
-                            )
+                row, card = matches[0]
+                label = "同意" if approve else "拒绝"
+                if label not in card.actions:
+                    raise ControlUnavailable("Requested decision is not exposed by QQ")
+                if kind == "friend" and not approve:
+                    arrow = b.find(
+                        row,
+                        lambda c: (
+                            "q-select-button-action__wrapper" in c.ClassName.split()
+                        ),
+                    )
+                    b.invoke(arrow)
+                    menu = wait_until(
+                        lambda: b.find(
+                            b.window,
+                            lambda c: (
+                                c.ControlTypeName == "MenuControl"
+                                and "q-select-button-options" in c.ClassName.split()
+                            ),
+                            False,
                         )
-                    ),
-                )
-            if not leaf.IsEnabled:
-                raise ControlUnavailable("Request decision control is disabled")
-            try:
+                    )
+                    leaf = b.find(
+                        menu,
+                        lambda c: (
+                            c.ControlTypeName == "MenuItemControl" and c.Name == "拒绝"
+                        ),
+                    )
+                else:
+                    leaf = b.find(
+                        row,
+                        lambda c: (
+                            (c.ControlTypeName == "ButtonControl" and c.Name == label)
+                            or (
+                                "q-selected-area" in c.ClassName.split()
+                                and any(
+                                    x.ControlTypeName == "TextControl"
+                                    and x.Name == label
+                                    for x, _ in b.auto.WalkControl(c, maxDepth=2)
+                                )
+                            )
+                        ),
+                    )
+                if not leaf.IsEnabled:
+                    raise ControlUnavailable("Request decision control is disabled")
+                submitted = True
                 b.invoke(leaf)
 
                 def changed():
-                    candidates = [c for c in self.read(kind) if c.ui_key == ui_key]
+                    # Reacquire the notification list in place. Returning to
+                    # messages belongs to the outer visit, after verification.
+                    candidates = [
+                        c
+                        for c in parse_system_cards(b.snapshot(self.page(kind)), kind)
+                        if c.ui_key == ui_key
+                    ]
                     return (
                         candidates[0]
                         if len(candidates) == 1
@@ -152,14 +186,16 @@ class NotificationUI:
                     )
 
                 after = wait_until(changed)
-            except Exception as error:
+                return {
+                    "ui_key": ui_key,
+                    "kind": kind,
+                    "approve": approve,
+                    "status": after.status,
+                    "verified_in_ui": True,
+                }
+        except Exception as error:
+            if submitted and not isinstance(error, MutationOutcomeUnknown):
                 raise MutationOutcomeUnknown(
                     "Request decision submitted; inspect QQ before retrying"
                 ) from error
-            return {
-                "ui_key": ui_key,
-                "kind": kind,
-                "approve": approve,
-                "status": after.status,
-                "verified_in_ui": True,
-            }
+            raise
